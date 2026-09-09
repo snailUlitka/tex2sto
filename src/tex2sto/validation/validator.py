@@ -1,0 +1,356 @@
+"""Strict validation for the documented tex2sto v1 dialect."""
+
+from __future__ import annotations
+
+import re
+from collections import Counter
+
+from tex2sto.diagnostics import DiagnosticBag
+from tex2sto.dialect.metadata import SINGLE_COMMANDS
+from tex2sto.dialect.syntax import (
+    control_words,
+    find_command_calls,
+    find_environment,
+    replace_spans,
+)
+from tex2sto.model import SourceProject
+from tex2sto.validation.prose import check_prose
+
+METADATA_COMMANDS = set(SINGLE_COMMANDS) | {
+    "consultant",
+    "keywords",
+    "source",
+    "supervisor",
+}
+STRUCTURE_COMMANDS = {
+    "introduction",
+    "conclusion",
+    "definitions",
+    "abbreviations",
+    "printbibliography",
+    "appendix",
+    "definition",
+}
+CONTENT_COMMANDS = {
+    "appendix",
+    "begin",
+    "caption",
+    "centering",
+    "cite",
+    "documentclass",
+    "emph",
+    "end",
+    "hline",
+    "href",
+    "includegraphics",
+    "input",
+    "item",
+    "label",
+    "ldots",
+    "newline",
+    "paragraph",
+    "printbibliography",
+    "ref",
+    "section",
+    "subparagraph",
+    "subsection",
+    "subsubsection",
+    "texttt",
+    "url",
+}
+MATH_COMMANDS = {
+    "alpha",
+    "beta",
+    "gamma",
+    "delta",
+    "epsilon",
+    "varepsilon",
+    "zeta",
+    "eta",
+    "theta",
+    "vartheta",
+    "iota",
+    "kappa",
+    "lambda",
+    "mu",
+    "nu",
+    "xi",
+    "pi",
+    "varpi",
+    "rho",
+    "varrho",
+    "sigma",
+    "varsigma",
+    "tau",
+    "upsilon",
+    "phi",
+    "varphi",
+    "chi",
+    "psi",
+    "omega",
+    "Gamma",
+    "Delta",
+    "Theta",
+    "Lambda",
+    "Xi",
+    "Pi",
+    "Sigma",
+    "Upsilon",
+    "Phi",
+    "Psi",
+    "Omega",
+    "frac",
+    "sqrt",
+    "sum",
+    "prod",
+    "int",
+    "iint",
+    "iiint",
+    "lim",
+    "sin",
+    "cos",
+    "tan",
+    "cot",
+    "log",
+    "ln",
+    "exp",
+    "min",
+    "max",
+    "det",
+    "left",
+    "right",
+    "cdot",
+    "times",
+    "div",
+    "pm",
+    "mp",
+    "le",
+    "leq",
+    "ge",
+    "geq",
+    "ne",
+    "neq",
+    "approx",
+    "infty",
+    "partial",
+    "nabla",
+    "mathrm",
+    "mathbf",
+    "mathit",
+    "operatorname",
+    "text",
+    "quad",
+    "qquad",
+    "overline",
+    "underline",
+    "hat",
+    "bar",
+    "vec",
+    "begin",
+    "end",
+}
+ALLOWED_COMMANDS = METADATA_COMMANDS | STRUCTURE_COMMANDS | CONTENT_COMMANDS | MATH_COMMANDS
+ALLOWED_ENVIRONMENTS = {
+    "abstract",
+    "align",
+    "align*",
+    "aligned",
+    "array",
+    "cases",
+    "description",
+    "document",
+    "enumerate",
+    "equation",
+    "equation*",
+    "figure",
+    "itemize",
+    "longtable",
+    "matrix",
+    "pmatrix",
+    "table",
+    "tabular",
+    "verbatim",
+}
+REQUIRED_METADATA = {
+    "title": "\\title",
+    "author": "\\author",
+    "student_group": "\\studentgroup",
+    "institute": "\\institute",
+    "department": "\\department",
+    "program_code": "\\programcode",
+    "program_name": "\\programname",
+    "study_profile": "\\studyprofile",
+    "supervisor_name": "\\supervisor",
+    "year": "\\year",
+}
+
+
+def _mask_verbatim(source: str) -> str:
+    replacements: list[tuple[int, int, str]] = []
+    for start, end, _ in find_environment(source, "verbatim"):
+        replacements.append((start, end, " " * (end - start)))
+    return replace_spans(source, replacements)
+
+
+def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    source = _mask_verbatim(project.expanded_source)
+    for command, line in control_words(source):
+        if command not in ALLOWED_COMMANDS:
+            diagnostics.error(
+                "T2S-E101",
+                f"unknown or forbidden command: \\{command}",
+                path=project.master,
+                line=line,
+            )
+    environment_calls = [
+        *find_command_calls(source, "begin", 1),
+        *find_command_calls(source, "end", 1),
+    ]
+    for call in environment_calls:
+        environment = call.args[0].strip()
+        if environment not in ALLOWED_ENVIRONMENTS:
+            diagnostics.error(
+                "T2S-E102",
+                f"unknown or forbidden environment: {environment}",
+                path=project.master,
+                line=call.line,
+            )
+
+
+def _validate_metadata(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    for attribute, command in REQUIRED_METADATA.items():
+        if not getattr(project.metadata, attribute):
+            diagnostics.error("T2S-E201", f"required metadata is missing: {command}")
+    if project.metadata.assignment_variant not in {"none", "1", "2"}:
+        diagnostics.error("T2S-E202", "assignment variant must be none, 1, or 2")
+    if project.metadata.assignment_variant != "none":
+        required_assignment = {
+            "assignment_approver": "\\assignmentapprover",
+            "assignment_questions": "\\assignmentquestions",
+            "assignment_issued": "\\assignmentissued",
+            "assignment_due": "\\assignmentdue",
+        }
+        for attribute, command in required_assignment.items():
+            if not getattr(project.metadata, attribute):
+                diagnostics.error("T2S-E203", f"assignment metadata is missing: {command}")
+    keyword_count = len(project.metadata.keywords)
+    if not 5 <= keyword_count <= 15:
+        diagnostics.error(
+            "T2S-E204",
+            "keywords must contain between 5 and 15 semicolon-separated items",
+        )
+    abstract_length = len(re.sub(r"\\[A-Za-z@]+|[{}]", "", project.metadata.abstract))
+    if not project.metadata.abstract:
+        diagnostics.error("T2S-E205", "an abstract environment is required")
+    elif abstract_length > 850:
+        diagnostics.warning("T2S-W201", "the recommended abstract limit is 850 characters")
+
+
+def _validate_structure(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    body = project.body
+    required = ("introduction", "section", "conclusion")
+    positions: dict[str, int] = {}
+    for name in required:
+        calls = find_command_calls(body, name, 0 if name != "section" else 1)
+        if not calls:
+            diagnostics.error("T2S-E301", f"required document structure is missing: \\{name}")
+        else:
+            positions[name] = calls[0].start
+    if len(positions) == len(required) and not (
+        positions["introduction"] < positions["section"] < positions["conclusion"]
+    ):
+        diagnostics.error(
+            "T2S-E302",
+            "introduction, main sections, and conclusion are out of order",
+        )
+    bibliography_marker = find_command_calls(body, "printbibliography", 0)
+    if project.bibliography and not bibliography_marker:
+        diagnostics.error("T2S-E303", "\\printbibliography is required when sources are declared")
+    if bibliography_marker and not project.bibliography:
+        diagnostics.warning(
+            "T2S-W301",
+            "bibliography marker is present but no sources are declared",
+        )
+
+
+def _environment_label(content: str) -> str | None:
+    labels = find_command_calls(content, "label", 1)
+    return labels[0].args[0].strip() if labels else None
+
+
+def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    source = project.body
+    labels = [call.args[0].strip() for call in find_command_calls(source, "label", 1)]
+    for label, count in Counter(labels).items():
+        if count > 1:
+            diagnostics.error("T2S-E401", f"duplicate label: {label}")
+    references = [call.args[0].strip() for call in find_command_calls(source, "ref", 1)]
+    for reference in references:
+        if reference not in labels:
+            diagnostics.error("T2S-E402", f"reference points to a missing label: {reference}")
+
+    for environment, prefix in (("figure", "fig:"), ("table", "tab:"), ("longtable", "tab:")):
+        for _, _, content in find_environment(source, environment):
+            captions = find_command_calls(content, "caption", 1)
+            label = _environment_label(content)
+            if len(captions) != 1:
+                diagnostics.error("T2S-E403", f"every {environment} requires exactly one caption")
+            if label is None or not label.startswith(prefix):
+                diagnostics.error("T2S-E404", f"every {environment} requires a {prefix} label")
+            elif label not in references:
+                diagnostics.error("T2S-E405", f"every {environment} must be referenced: {label}")
+
+    appendix_calls = find_command_calls(source, "appendix", 2)
+    for call in appendix_calls:
+        label = call.args[0].strip()
+        if not label.startswith("app:"):
+            diagnostics.error("T2S-E406", "appendix labels must start with app:", line=call.line)
+        elif label not in references:
+            diagnostics.error("T2S-E407", f"every appendix must be referenced: {label}")
+
+    for environment in ("equation", "align"):
+        for _, _, content in find_environment(source, environment):
+            label = _environment_label(content)
+            if label is None or not label.startswith("eq:"):
+                diagnostics.error("T2S-E411", f"every {environment} requires an eq: label")
+            elif label not in references:
+                diagnostics.error("T2S-E412", f"every {environment} must be referenced: {label}")
+
+    for call in find_command_calls(source, "includegraphics", 1):
+        asset = (project.root / call.args[0].strip()).resolve()
+        try:
+            asset.relative_to(project.root)
+        except ValueError:
+            diagnostics.error("T2S-E408", f"image path escapes the project root: {call.args[0]}")
+            continue
+        if asset.suffix.lower() in {".svg", ".svgz"}:
+            diagnostics.error("T2S-E409", "SVG images are not supported in v1")
+        elif not asset.is_file():
+            diagnostics.error("T2S-E410", f"image file does not exist: {call.args[0]}")
+
+
+def _validate_bibliography(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    keys = [item.key for item in project.bibliography]
+    for key, count in Counter(keys).items():
+        if count > 1:
+            diagnostics.error("T2S-E501", f"duplicate source key: {key}")
+    citations = [call.args[0].strip() for call in find_command_calls(project.body, "cite", 1)]
+    for citation in citations:
+        for key in (part.strip() for part in citation.split(",")):
+            if key not in keys:
+                diagnostics.error("T2S-E502", f"citation points to a missing source: {key}")
+    cited = {part.strip() for citation in citations for part in citation.split(",")}
+    for key in keys:
+        if key not in cited:
+            diagnostics.warning("T2S-W501", f"declared source is never cited: {key}")
+
+
+def validate_project(project: SourceProject) -> DiagnosticBag:
+    diagnostics = DiagnosticBag()
+    _validate_commands(project, diagnostics)
+    _validate_metadata(project, diagnostics)
+    _validate_structure(project, diagnostics)
+    _validate_objects(project, diagnostics)
+    _validate_bibliography(project, diagnostics)
+    check_prose(project.body, path=project.master, diagnostics=diagnostics)
+    return diagnostics
