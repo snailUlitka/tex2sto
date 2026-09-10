@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -45,6 +46,14 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert "TEX2STO_TABLE_BREAK" not in document
         assert " IF " not in document
         assert document.count("<w:tbl>") == 3
+        grids = re.findall(r"<w:tblGrid>(.*?)</w:tblGrid>", document)
+        longtable_widths = [
+            tuple(int(width) for width in re.findall(r'<w:gridCol w:w="(\d+)"', grid))
+            for grid in grids[1:]
+        ]
+        assert len(longtable_widths) == 2
+        assert longtable_widths[0] == longtable_widths[1]
+        assert longtable_widths[0][0] > longtable_widths[0][1]
         page_size = document.split("<w:pgSz", 1)[1].split("/>", 1)[0]
         assert 'w:w="11906"' in page_size
         assert 'w:h="16838"' in page_size

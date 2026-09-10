@@ -54,6 +54,7 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 - bookmarks and `NUMPAGES`/`PAGEREF` fields;
 - Russian list formats;
 - media relationships;
+- content-weighted table-grid widths;
 - separate longtable segments, explicit page breaks, repeating headers, and
   visible continuation labels without renderer markers.
 

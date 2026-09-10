@@ -290,6 +290,34 @@ def _format_equations(document, index: NumberingIndex) -> None:
         equation_index += 1
 
 
+def _balance_table_columns(table) -> None:
+    grid_columns = table._tbl.tblGrid.findall(qn("w:gridCol"))
+    if len(grid_columns) < 2:
+        return
+    total_width = sum(int(column.get(qn("w:w"), "0")) for column in grid_columns)
+    if total_width <= 0:
+        return
+
+    content_rows = [
+        row
+        for row in table.rows
+        if not any(TABLE_BREAK_MARKER in cell.text for cell in row.cells)
+    ]
+    weights = [
+        max((len(row.cells[position].text.strip()) for row in content_rows), default=0) + 8
+        for position in range(len(grid_columns))
+    ]
+    allocated = 0
+    for position, (column, weight) in enumerate(zip(grid_columns, weights, strict=True)):
+        width = (
+            total_width - allocated
+            if position == len(grid_columns) - 1
+            else round(total_width * weight / sum(weights))
+        )
+        column.set(qn("w:w"), str(width))
+        allocated += width
+
+
 def _table_segment(table, start: int, end: int):
     segment = deepcopy(table._tbl)
     for position, row in enumerate(segment.findall(qn("w:tr"))):
@@ -336,6 +364,7 @@ def _format_tables(document, project: SourceProject, index: NumberingIndex) -> N
     ]
     tables = list(document.tables)
     for position, (table, numbered) in enumerate(zip(tables, table_objects, strict=False)):
+        _balance_table_columns(table)
         bookmark = f"tex2sto_table_{position + 1}"
         if position < len(captions):
             add_bookmark(captions[position], bookmark, position + 1000)
