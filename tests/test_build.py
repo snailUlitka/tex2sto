@@ -32,6 +32,7 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert "(1)" in document
         assert "Tex2StoEquation" in document
         assert "<w:tblHeader" in document
+        assert "Продолжение таблицы 2" in document
         page_size = document.split("<w:pgSz", 1)[1].split("/>", 1)[0]
         assert 'w:w="11906"' in page_size
         assert 'w:h="16838"' in page_size
@@ -65,3 +66,4 @@ def test_pdf_is_independently_built_as_a4(tmp_path: Path) -> None:
     assert "Page size:       595.276 x 841.89 pts (A4)" in info
     assert "РЕФЕРАТ" in pdf_text
     assert "ПРИЛОЖЕНИЕ А" in pdf_text
+    assert "Продолжение таблицы 2" in pdf_text

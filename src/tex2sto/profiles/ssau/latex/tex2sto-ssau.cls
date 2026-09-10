@@ -62,10 +62,10 @@
   Вопросы, подлежащие разработке: #3\par
   Дата выдачи: #4\par Срок представления: #5\clearpage}
 \newcommand{\texassignmentcontinuation}{\texstructural{ЗАДАНИЕ (ПРОДОЛЖЕНИЕ)}\vfill\clearpage}
-\newcommand{\texabstract}[5]{%
+\newcommand{\texabstract}[6]{%
   \texstructural{РЕФЕРАТ}
-  Работа: \pageref{LastPage} с., #1 рис., #2 табл., #3 источник(ов).\par
-  \noindent #4\par #5\clearpage}
+  Работа: \pageref{LastPage} с., #1 рис., #2 табл., #3 источник(ов), #4 прил.\par
+  \noindent #5\par #6\clearpage}
 \makeatletter
 \renewcommand{\tableofcontents}{\texstructural{СОДЕРЖАНИЕ}\@starttoc{toc}}
 \makeatother

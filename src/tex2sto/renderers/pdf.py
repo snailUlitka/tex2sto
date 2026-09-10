@@ -9,6 +9,7 @@ import tomllib
 from importlib.resources import files
 from pathlib import Path
 
+from tex2sto.dialect.syntax import find_command_calls
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
 from tex2sto.transform import PAGE_BREAK_MARKER, renderer_body
@@ -35,6 +36,7 @@ def _escape(value: str) -> str:
 def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
     metadata = project.metadata
     counts = {kind: sum(item.kind is kind for item in index.objects) for kind in ObjectKind}
+    appendices = len(find_command_calls(project.body, "appendix", 2))
     keywords = _escape(", ".join(keyword.upper() for keyword in metadata.keywords))
     title_commands = "\n".join(
         f"\\{command}{{{_escape(value)}}}"
@@ -64,7 +66,7 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
 {title_commands}
 \textitlepage
 {assignment}
-\texabstract{{{counts[ObjectKind.FIGURE]}}}{{{counts[ObjectKind.TABLE]}}}{{{len(project.bibliography)}}}{{{keywords}}}{{{metadata.abstract}}}
+\texabstract{{{counts[ObjectKind.FIGURE]}}}{{{counts[ObjectKind.TABLE]}}}{{{len(project.bibliography)}}}{{{appendices}}}{{{keywords}}}{{{metadata.abstract}}}
 \tableofcontents
 """
 

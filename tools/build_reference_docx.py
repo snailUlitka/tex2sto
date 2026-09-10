@@ -14,7 +14,7 @@ from docx.enum.text import (
 )
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Mm, Pt
+from docx.shared import Mm, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "src" / "tex2sto" / "profiles" / "ssau" / "pandoc" / "reference.docx"
@@ -116,6 +116,14 @@ def main() -> None:
     )
     for name, size, alignment in compact_styles:
         _style(document, name, size=size, first_line=False, alignment=alignment)
+    continuation_style = _style(
+        document,
+        "Tex2Sto Table Continuation",
+        size=12,
+        first_line=False,
+        alignment=WD_PARAGRAPH_ALIGNMENT.RIGHT,
+    )
+    continuation_style.font.color.rgb = RGBColor(255, 255, 255)
     equation_style = _style(
         document,
         "Tex2Sto Equation",

@@ -46,3 +46,35 @@ def test_warning_can_be_promoted_or_suppressed(project_dir: Path) -> None:
     )
     suppressed = validate_project(load_project(master))
     assert all(item.code != "T2S-W103" for item in suppressed.items)
+
+
+def test_longtable_requires_semantic_header(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    table = r"""
+Таблица~\ref{tab:long} содержит данные.
+\begin{longtable}{ll}
+\caption{Данные}
+\label{tab:long}\\
+Поле & Значение \\
+данные & результат \\
+\end{longtable}
+"""
+    master.write_text(source.replace("\\conclusion", table + "\n\\conclusion"), encoding="utf-8")
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E413" for item in diagnostics.items)
+
+
+def test_rejects_unknown_bibliography_kind(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8").replace(
+        "\\source{doe2025}{book}",
+        "\\source{doe2025}{memo}",
+    )
+    master.write_text(source, encoding="utf-8")
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E504" for item in diagnostics.items)

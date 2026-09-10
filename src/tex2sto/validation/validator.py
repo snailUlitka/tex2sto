@@ -55,6 +55,7 @@ CONTENT_COMMANDS = {
     "subparagraph",
     "subsection",
     "subsubsection",
+    "tablehead",
     "texttt",
     "url",
 }
@@ -300,6 +301,43 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
                 diagnostics.error("T2S-E404", f"every {environment} requires a {prefix} label")
             elif label not in references:
                 diagnostics.error("T2S-E405", f"every {environment} must be referenced: {label}")
+            if environment == "longtable":
+                table_heads = find_command_calls(content, "tablehead", 1)
+                if len(table_heads) != 1:
+                    diagnostics.error(
+                        "T2S-E413",
+                        "every longtable requires exactly one \\tablehead command",
+                    )
+
+    all_table_heads = len(find_command_calls(source, "tablehead", 1))
+    nested_table_heads = sum(
+        len(find_command_calls(content, "tablehead", 1))
+        for _, _, content in find_environment(source, "longtable")
+    )
+    if all_table_heads != nested_table_heads:
+        diagnostics.error("T2S-E415", "\\tablehead may appear only inside longtable")
+
+    for environment in ("tabular", "longtable"):
+        for _, _, content in find_environment(source, environment):
+            cleaned = replace_spans(
+                content,
+                [
+                    (call.start, call.end, "")
+                    for command, arity in (("caption", 1), ("label", 1), ("tablehead", 1))
+                    for call in find_command_calls(content, command, arity)
+                ],
+            )
+            for row in cleaned.split(r"\\"):
+                if "&" not in row:
+                    continue
+                cells = [
+                    re.sub(r"\\hline|^\s*\{[^{}]*\}", "", cell).strip() for cell in row.split("&")
+                ]
+                if any(not cell for cell in cells):
+                    diagnostics.error(
+                        "T2S-E414",
+                        "empty table cells must contain an explicit dash",
+                    )
 
     appendix_calls = find_command_calls(source, "appendix", 2)
     for call in appendix_calls:
@@ -335,6 +373,17 @@ def _validate_bibliography(project: SourceProject, diagnostics: DiagnosticBag) -
     for key, count in Counter(keys).items():
         if count > 1:
             diagnostics.error("T2S-E501", f"duplicate source key: {key}")
+    allowed_kinds = {"article", "book", "standard", "thesis", "web"}
+    for item in project.bibliography:
+        if not re.fullmatch(r"[A-Za-z0-9:_-]+", item.key):
+            diagnostics.error("T2S-E503", f"invalid source key: {item.key}")
+        if item.kind not in allowed_kinds:
+            diagnostics.error("T2S-E504", f"unsupported source kind: {item.kind}")
+        if not item.title or not item.details:
+            diagnostics.error(
+                "T2S-E505",
+                f"source requires a title and publication details: {item.key}",
+            )
     citations = [call.args[0].strip() for call in find_command_calls(project.body, "cite", 1)]
     for citation in citations:
         for key in (part.strip() for part in citation.split(",")):

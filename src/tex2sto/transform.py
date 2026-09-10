@@ -53,6 +53,17 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
             content_replacements.extend(
                 (call.start, call.end, "") for call in find_command_calls(content, "label", 1)
             )
+            if environment == "longtable":
+                for call in find_command_calls(content, "tablehead", 1):
+                    cells = call.args[0].strip()
+                    header = f"\\hline\n{cells} \\\\\n\\hline"
+                    if target == "pdf":
+                        header += (
+                            "\n\\endfirsthead\n"
+                            f"\\caption*{{Продолжение таблицы {number}}} \\\\\n"
+                            f"\\hline\n{cells} \\\\\n\\hline\n\\endhead"
+                        )
+                    content_replacements.append((call.start, call.end, header))
             normalized = replace_spans(content, content_replacements)
             rebuilt = f"\\begin{{{environment}}}{normalized}\\end{{{environment}}}"
             replacements.append((start, end, rebuilt))

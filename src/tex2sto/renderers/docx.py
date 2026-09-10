@@ -12,10 +12,13 @@ from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
+from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
+    add_table_continuation_field,
+    remove_cell_borders,
     repeat_table_row,
     set_update_fields,
 )
@@ -131,6 +134,7 @@ def _abstract_and_toc(
     toc_entries: list[tuple[int, str, str]],
 ) -> list:
     counts = {kind: sum(item.kind is kind for item in index.objects) for kind in ObjectKind}
+    appendices = len(find_command_calls(project.body, "appendix", 2))
     elements = []
     heading = _front_paragraph(document, "РЕФЕРАТ", style="Tex2Sto Structural Heading")
     elements.append(heading._p)
@@ -140,7 +144,7 @@ def _abstract_and_toc(
     stats.add_run(
         f" с., {counts[ObjectKind.FIGURE]} рис., {counts[ObjectKind.TABLE]} табл., "
         f"{len(project.bibliography)} источник(ов), "
-        f"{sum(item.appendix is not None for item in index.objects)} объект(ов) в приложениях."
+        f"{appendices} прил."
     )
     elements.append(stats._p)
     keywords = _front_paragraph(
@@ -256,10 +260,41 @@ def _format_equations(document, index: NumberingIndex) -> None:
         equation_index += 1
 
 
+def _format_tables(document, project: SourceProject, index: NumberingIndex) -> None:
+    table_objects = [item for item in index.objects if item.kind is ObjectKind.TABLE]
+    longtable_positions = {start for start, _, _ in find_environment(project.body, "longtable")}
+    captions = [
+        paragraph
+        for paragraph in document.paragraphs
+        if paragraph.text.strip().startswith("Таблица ")
+    ]
+    for position, (table, numbered) in enumerate(zip(document.tables, table_objects, strict=False)):
+        bookmark = f"tex2sto_table_{position + 1}"
+        if position < len(captions):
+            add_bookmark(captions[position], bookmark, position + 1000)
+        if numbered.position not in longtable_positions or not table.rows:
+            continue
+        first_row = table.rows[0]
+        continuation = table.add_row()
+        first_row._tr.addprevious(continuation._tr)
+        if len(continuation.cells) > 1:
+            continuation.cells[0].merge(continuation.cells[-1])
+        remove_cell_borders(continuation.cells[0])
+        paragraph = continuation.cells[0].paragraphs[0]
+        paragraph.style = "Tex2Sto Table Continuation"
+        add_table_continuation_field(
+            paragraph,
+            bookmark,
+            f"Продолжение таблицы {numbered.display}",
+        )
+        repeat_table_row(continuation)
+
+
 def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> None:
     document = Document(path)
     _apply_styles(document)
     _format_equations(document, index)
+    _format_tables(document, project, index)
     toc_entries = _toc_entries(document)
     anchor = document.element.body[0]
     elements = [
