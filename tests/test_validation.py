@@ -26,6 +26,19 @@ def test_unknown_command_is_an_error(project_dir: Path) -> None:
     assert any(item.code == "T2S-E101" for item in diagnostics.items)
 
 
+def test_math_command_is_rejected_in_prose(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    master.write_text(
+        source.replace("Получен результат.", "Получен \\underline{результат}."),
+        encoding="utf-8",
+    )
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E103" for item in diagnostics.items)
+
+
 def test_warning_can_be_promoted_or_suppressed(project_dir: Path) -> None:
     master = project_dir / "main.tex"
     original = master.read_text(encoding="utf-8")

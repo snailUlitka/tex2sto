@@ -8,9 +8,12 @@ from collections import Counter
 from tex2sto.diagnostics import DiagnosticBag
 from tex2sto.dialect.metadata import SINGLE_COMMANDS
 from tex2sto.dialect.syntax import (
+    CONTROL_WORD_RE,
     control_words,
     find_command_calls,
     find_environment,
+    line_number,
+    mask_comments,
     replace_spans,
 )
 from tex2sto.model import SourceProject
@@ -173,6 +176,17 @@ ALLOWED_ENVIRONMENTS = {
     "tabular",
     "verbatim",
 }
+MATH_ENVIRONMENTS = {
+    "align",
+    "align*",
+    "aligned",
+    "array",
+    "cases",
+    "equation",
+    "equation*",
+    "matrix",
+    "pmatrix",
+}
 REQUIRED_METADATA = {
     "title": "\\title",
     "author": "\\author",
@@ -217,6 +231,28 @@ def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> No
                 f"unknown or forbidden environment: {environment}",
                 path=project.master,
                 line=call.line,
+            )
+    math_spans = [
+        (start, end)
+        for environment in MATH_ENVIRONMENTS
+        for start, end, _ in find_environment(source, environment)
+    ]
+    math_spans.extend(
+        (match.start(), match.end())
+        for pattern in (r"(?<!\\)\$(?:\\.|[^$])*\$", r"\\\[.*?\\\]")
+        for match in re.finditer(pattern, source, flags=re.DOTALL)
+    )
+    masked = mask_comments(source)
+    for match in CONTROL_WORD_RE.finditer(masked):
+        command = match.group(1)
+        if command in MATH_COMMANDS - {"begin", "end"} and not any(
+            start <= match.start() < end for start, end in math_spans
+        ):
+            diagnostics.error(
+                "T2S-E103",
+                f"math command may appear only in math: \\{command}",
+                path=project.master,
+                line=line_number(source, match.start()),
             )
 
 
@@ -438,6 +474,11 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
             continue
         if asset.suffix.lower() in {".svg", ".svgz"}:
             diagnostics.error("T2S-E409", "SVG images are not supported in v1")
+        elif asset.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
+            diagnostics.error(
+                "T2S-E420",
+                f"unsupported image format: {asset.suffix or '(none)'}",
+            )
         elif not asset.is_file():
             diagnostics.error("T2S-E410", f"image file does not exist: {call.args[0]}")
 
