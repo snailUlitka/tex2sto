@@ -11,9 +11,9 @@
   \setsansfont{Times New Roman}
   \setmonofont{Times New Roman}
 }{%
-  \setmainfont{TeX Gyre Termes}
-  \setsansfont{TeX Gyre Termes}
-  \setmonofont{TeX Gyre Termes}
+  \setmainfont{Liberation Serif}
+  \setsansfont{Liberation Serif}
+  \setmonofont{Liberation Serif}
 }
 \RequirePackage{setspace}
 \onehalfspacing

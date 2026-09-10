@@ -109,5 +109,7 @@ the STO-permitted sequence and exclude forbidden Cyrillic letters.
 
 `src/tex2sto/profiles/ssau/toolchain.toml` pins Pandoc 3.11, TeX Live 2026,
 and Python 3.12. Renderer startup rejects incompatible external versions.
-`uv.lock` freezes Python dependencies. Docker installs the same pins and native
+`uv.lock` freezes Python dependencies. Docker installs the same pins on the
+official TeX Live `medium` multi-architecture image, locked by manifest digest;
+the representative DOCX and PDF build is the package-completeness gate. Native
 macOS uses the same runtime contract.

@@ -36,8 +36,9 @@ user documentation are present.
   native `longtable` continuation heads.
 - Automatic object numbering switches at ten objects only when at least two
   sections contain that object type.
-- Containers fall back to TeX Gyre Termes when licensed Times New Roman is not
-  available; normative PDF production still requires Times New Roman.
+- Containers fall back to Cyrillic-capable Liberation Serif with Times-compatible
+  metrics when licensed Times New Roman is not available; normative PDF
+  production still requires Times New Roman.
 
 ## Release Readiness Work
 

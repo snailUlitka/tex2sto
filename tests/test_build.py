@@ -12,6 +12,14 @@ from tex2sto.dialect import load_project
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "master-thesis" / "main.tex"
+PDF_CLASS = ROOT / "src" / "tex2sto" / "profiles" / "ssau" / "latex" / "tex2sto-ssau.cls"
+
+
+def test_pdf_profile_has_cyrillic_capable_times_fallback() -> None:
+    profile = PDF_CLASS.read_text(encoding="utf-8")
+
+    assert r"\IfFontExistsTF{Times New Roman}" in profile
+    assert r"\setmainfont{Liberation Serif}" in profile
 
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
