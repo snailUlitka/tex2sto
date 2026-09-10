@@ -34,6 +34,9 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert "Tex2StoEquation" in document
         assert "<w:tblHeader" in document
         assert "Продолжение таблицы 2" in document
+        assert "TEX2STO_TABLE_BREAK" not in document
+        assert " IF " not in document
+        assert document.count("<w:tbl>") == 3
         page_size = document.split("<w:pgSz", 1)[1].split("/>", 1)[0]
         assert 'w:w="11906"' in page_size
         assert 'w:h="16838"' in page_size

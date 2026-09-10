@@ -54,7 +54,8 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 - bookmarks and `NUMPAGES`/`PAGEREF` fields;
 - Russian list formats;
 - media relationships;
-- repeating table headers and the continuation conditional field.
+- separate longtable segments, explicit page breaks, repeating headers, and
+  visible continuation labels without renderer markers.
 
 PDF tests verify a real PDF header, A4 dimensions, structural content,
 appendices, and longtable continuation text.
@@ -66,11 +67,11 @@ and PDF with Poppler. Inspect all pages of the representative example, with
 special attention to title and assignment pages, contents, section page breaks,
 float order, equations, split tables, bibliography, and appendices.
 
-LibreOffice does not correctly evaluate the nested Word conditional used for a
-continuation-only table label. Before claiming a release compatible with Word,
-open the representative DOCX in a current Microsoft Word for macOS build,
-update all fields, and verify styles, editability, contents, equation layout,
-table continuation, and pagination.
+Before claiming a release compatible with Word, open the representative DOCX
+in a current Microsoft Word for macOS build, update all fields, and verify
+styles, editability, contents, equation layout, explicit table continuations,
+and pagination. The V1 representative document passed this gate after replacing
+the non-working repeated-row conditional field with explicit table segments.
 
 ## Dependency Upgrade Gate
 

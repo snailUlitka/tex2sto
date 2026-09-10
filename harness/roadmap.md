@@ -31,8 +31,9 @@ user documentation are present.
 - Pandoc 3.11, TeX Live 2026, Python 3.12.11, and uv 0.12.x are pinned.
 - Bibliography records use five in-source fields and first-citation order.
 - Warning suppression is a next-content-line comment with explicit codes.
-- Editable Word table continuations use a repeated conditional field row; PDF
-  uses `longtable` continuation heads.
+- Editable Word table continuations use validated explicit `\tablebreak`
+  segments because repeated header rows do not reevaluate fields; PDF uses
+  native `longtable` continuation heads.
 - Automatic object numbering switches at ten objects only when at least two
   sections contain that object type.
 - Containers fall back to TeX Gyre Termes when licensed Times New Roman is not
@@ -40,8 +41,6 @@ user documentation are present.
 
 ## Release Readiness Work
 
-- complete the manual Microsoft Word gate for conditional table continuation
-  fields on every supported Word version;
 - add CI after the hosting platform and secret policy are chosen;
 - choose the license and publish packaged release artifacts;
 - add signed or checksummed container publication if distribution requires it.

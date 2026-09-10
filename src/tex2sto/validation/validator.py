@@ -59,6 +59,7 @@ CONTENT_COMMANDS = {
     "subparagraph",
     "subsection",
     "subsubsection",
+    "tablebreak",
     "tablehead",
     "texttt",
     "url",
@@ -402,6 +403,39 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
                         "T2S-E413",
                         "every longtable requires exactly one \\tablehead command",
                     )
+                table_breaks = find_command_calls(content, "tablebreak", 0)
+                if not table_breaks:
+                    diagnostics.error(
+                        "T2S-E420",
+                        "every longtable requires at least one \\tablebreak command",
+                    )
+
+                cleaned = replace_spans(
+                    content,
+                    [
+                        (call.start, call.end, "")
+                        for command, arity in (
+                            ("caption", 1),
+                            ("label", 1),
+                            ("tablehead", 1),
+                            ("hline", 0),
+                        )
+                        for call in find_command_calls(content, command, arity)
+                    ],
+                )
+                segments = re.split(r"\\tablebreak(?![A-Za-z@])", cleaned)
+                for segment in segments:
+                    row_count = sum("&" in row for row in segment.split(r"\\"))
+                    if row_count == 0:
+                        diagnostics.error(
+                            "T2S-E421",
+                            "each longtable segment must contain at least one data row",
+                        )
+                    elif row_count > 18:
+                        diagnostics.error(
+                            "T2S-E422",
+                            "longtable segments may contain at most 18 data rows",
+                        )
 
     all_table_heads = len(find_command_calls(source, "tablehead", 1))
     nested_table_heads = sum(
@@ -410,6 +444,13 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
     )
     if all_table_heads != nested_table_heads:
         diagnostics.error("T2S-E415", "\\tablehead may appear only inside longtable")
+    all_table_breaks = len(find_command_calls(source, "tablebreak", 0))
+    nested_table_breaks = sum(
+        len(find_command_calls(content, "tablebreak", 0))
+        for _, _, content in find_environment(source, "longtable")
+    )
+    if all_table_breaks != nested_table_breaks:
+        diagnostics.error("T2S-E423", "\\tablebreak may appear only inside longtable")
 
     for environment in ("tabular", "longtable"):
         for _, _, content in find_environment(source, environment):
@@ -417,7 +458,12 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
                 content,
                 [
                     (call.start, call.end, "")
-                    for command, arity in (("caption", 1), ("label", 1), ("tablehead", 1))
+                    for command, arity in (
+                        ("caption", 1),
+                        ("label", 1),
+                        ("tablehead", 1),
+                        ("tablebreak", 0),
+                    )
                     for call in find_command_calls(content, command, arity)
                 ],
             )

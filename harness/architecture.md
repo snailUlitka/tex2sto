@@ -45,9 +45,9 @@ supplies A4 setup, margins, fonts, footer, and the `Tex2Sto ...` style family.
 
 Focused Python post-processing adds the title and assignment pages, abstract
 statistics, editable page fields and contents entries, bookmarks, right-aligned
-equation numbers, Russian list numbering, repeating table rows, and conditional
-continuation labels. It patches Pandoc output rather than constructing the
-package from scratch.
+equation numbers, Russian list numbering, repeating table rows, and explicit
+continuation segments at validated `\tablebreak` points. It patches Pandoc
+output rather than constructing the package from scratch.
 
 ### PDF path
 
@@ -60,7 +60,7 @@ round-trips through DOCX or LibreOffice.
 
 LibreOffice is used only to render DOCX during visual QA. Poppler renders and
 inspects PDF. Microsoft Word is the priority DOCX consumer and remains the
-manual release gate for nested field behavior.
+manual release gate for page and contents fields.
 
 ## Repository Shape
 

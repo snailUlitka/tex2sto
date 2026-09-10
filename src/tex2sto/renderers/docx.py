@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import tomllib
+from copy import deepcopy
 from importlib.resources import files
 from pathlib import Path
 
@@ -11,19 +12,18 @@ from docx import Document
 from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import RGBColor
 
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
-    add_table_continuation_field,
-    remove_cell_borders,
     repeat_table_row,
     set_update_fields,
 )
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
-from tex2sto.transform import PAGE_BREAK_MARKER, renderer_body
+from tex2sto.transform import PAGE_BREAK_MARKER, TABLE_BREAK_MARKER, renderer_body
 
 PROFILE = files("tex2sto") / "profiles" / "ssau" / "pandoc"
 
@@ -171,6 +171,7 @@ def _abstract_and_toc(
 
 
 def _apply_styles(document) -> None:
+    document.styles["Tex2Sto Table Continuation"].font.color.rgb = RGBColor(0, 0, 0)
     appendix_title_pending = False
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
@@ -289,6 +290,42 @@ def _format_equations(document, index: NumberingIndex) -> None:
         equation_index += 1
 
 
+def _table_segment(table, start: int, end: int):
+    segment = deepcopy(table._tbl)
+    for position, row in enumerate(segment.findall(qn("w:tr"))):
+        if position != 0 and not start <= position < end:
+            segment.remove(row)
+    return segment
+
+
+def _split_longtable(document, table, display: str) -> None:
+    marker_rows = [
+        position
+        for position, row in enumerate(table.rows)
+        if any(TABLE_BREAK_MARKER in cell.text for cell in row.cells)
+    ]
+    if not marker_rows:
+        raise RuntimeError("validated longtable lost its table-break marker during DOCX rendering")
+
+    starts = [1, *(position + 1 for position in marker_rows)]
+    ends = [*marker_rows, len(table.rows)]
+    elements = []
+    for segment_number, (start, end) in enumerate(zip(starts, ends, strict=True)):
+        if segment_number:
+            continuation = _front_paragraph(document, style="Tex2Sto Table Continuation")
+            continuation.add_run().add_break(WD_BREAK.PAGE)
+            continuation.add_run(f"Продолжение таблицы {display}")
+            elements.append(continuation._p)
+        elements.append(_table_segment(table, start, end))
+
+    parent = table._tbl.getparent()
+    insertion = parent.index(table._tbl)
+    parent.remove(table._tbl)
+    for element in elements:
+        parent.insert(insertion, element)
+        insertion += 1
+
+
 def _format_tables(document, project: SourceProject, index: NumberingIndex) -> None:
     table_objects = [item for item in index.objects if item.kind is ObjectKind.TABLE]
     longtable_positions = {start for start, _, _ in find_environment(project.body, "longtable")}
@@ -297,26 +334,14 @@ def _format_tables(document, project: SourceProject, index: NumberingIndex) -> N
         for paragraph in document.paragraphs
         if paragraph.text.strip().startswith("Таблица ")
     ]
-    for position, (table, numbered) in enumerate(zip(document.tables, table_objects, strict=False)):
+    tables = list(document.tables)
+    for position, (table, numbered) in enumerate(zip(tables, table_objects, strict=False)):
         bookmark = f"tex2sto_table_{position + 1}"
         if position < len(captions):
             add_bookmark(captions[position], bookmark, position + 1000)
         if numbered.position not in longtable_positions or not table.rows:
             continue
-        first_row = table.rows[0]
-        continuation = table.add_row()
-        first_row._tr.addprevious(continuation._tr)
-        if len(continuation.cells) > 1:
-            continuation.cells[0].merge(continuation.cells[-1])
-        remove_cell_borders(continuation.cells[0])
-        paragraph = continuation.cells[0].paragraphs[0]
-        paragraph.style = "Tex2Sto Table Continuation"
-        add_table_continuation_field(
-            paragraph,
-            bookmark,
-            f"Продолжение таблицы {numbered.display}",
-        )
-        repeat_table_row(continuation)
+        _split_longtable(document, table, numbered.display)
 
 
 def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> None:

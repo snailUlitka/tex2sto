@@ -127,10 +127,13 @@ Derived from clauses 6.2.1-6.2.14:
 - use appendix-local identifiers such as `Таблица А.1`;
 - keep a table note inside the table above its final boundary.
 
-Editable Word continuation labels use a repeated header row containing a
-conditional `PAGE`/`PAGEREF` field. PDF uses native `longtable` continuation
-heads. The field mechanism remains a manual Microsoft Word release gate because
-LibreOffice does not evaluate the nested conditional field accurately.
+Word does not reevaluate fields in repeated table-header rows. The DOCX path
+therefore splits a semantic `longtable` into separate editable tables at
+explicit `\tablebreak` points, inserts a page break and `Продолжение таблицы N`
+before every later part, and repeats the semantic header. Each part contains at
+most 18 data rows so the source cannot silently defer an obviously oversized
+segment to pagination. PDF removes the explicit hints and uses native
+`longtable` continuation heads.
 
 ## Equations
 

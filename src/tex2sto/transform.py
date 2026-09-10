@@ -9,6 +9,7 @@ from tex2sto.model import BibliographyItem, NumberingIndex, ObjectKind, SourcePr
 from tex2sto.model.numbering import APPENDIX_LETTERS
 
 PAGE_BREAK_MARKER = "TEX2STO_PAGE_BREAK"
+TABLE_BREAK_MARKER = "TEX2STO_TABLE_BREAK"
 
 
 def _object_number(index: NumberingIndex, label: str | None) -> str:
@@ -55,7 +56,8 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
                 (call.start, call.end, "") for call in find_command_calls(content, "label", 1)
             )
             if environment == "longtable":
-                for call in find_command_calls(content, "tablehead", 1):
+                table_heads = find_command_calls(content, "tablehead", 1)
+                for call in table_heads:
                     cells = call.args[0].strip()
                     header = f"\\hline\n{cells} \\\\\n\\hline"
                     if target == "pdf":
@@ -65,6 +67,15 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
                             f"\\hline\n{cells} \\\\\n\\hline\n\\endhead"
                         )
                     content_replacements.append((call.start, call.end, header))
+                column_count = table_heads[0].args[0].count("&") + 1 if table_heads else 1
+                for call in find_command_calls(content, "tablebreak", 0):
+                    if target == "pdf":
+                        replacement = ""
+                    else:
+                        replacement = " & ".join(
+                            TABLE_BREAK_MARKER for _ in range(column_count)
+                        ) + r" \\"
+                    content_replacements.append((call.start, call.end, replacement))
             normalized = replace_spans(content, content_replacements)
             options = "[H]" if target == "pdf" and environment in {"figure", "table"} else ""
             rebuilt = (
