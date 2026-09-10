@@ -2,111 +2,79 @@
 
 ## Compliance Boundary
 
-The validator enforces syntax, structure, references, and layout-related source
-rules that can be checked deterministically. It may flag likely prose-level
-violations using conservative pattern checks.
+The validator enforces syntax, metadata, structure, references, source order,
+and layout-related rules that are deterministic before rendering. Conservative
+warnings flag prose patterns with plausible legitimate exceptions.
 
-It does not judge correctness of claims, academic novelty, choice of technical
-terminology, grammatical quality, or requirements that need semantic NLP. Such
-requirements remain documented human-review items.
+The program does not judge claims, novelty, terminology, grammar, or other
+semantic writing requirements. Those remain human-review items.
 
-## Diagnostic Model
+## Diagnostics
 
-### Errors
+Errors stop a build. Implemented error families cover unknown syntax, math
+commands outside math, unsafe or cyclic `\input`, missing assets, metadata,
+structural order, heading form, duplicate or unresolved references, object
+labels and first references, table headers and empty cells, appendix order,
+and bibliography records.
 
-Errors stop the build because a reliable conforming output cannot be produced.
-Expected errors include:
+Warnings cover abstract length, unused sources, and conservative prose patterns:
+detached signs, numeric minus, digits one through nine without a unit, breakable
+number-unit spaces, and decimal points in Russian prose. `--strict` promotes
+warnings to errors. `% tex2sto: ignore=CODE[,CODE]` suppresses listed warnings
+only on the next non-comment content line.
 
-- an unknown or forbidden LaTeX command;
-- invalid dialect syntax or nesting;
-- an `\input` path outside the project root;
-- a missing input or asset;
-- an include cycle;
-- duplicate labels;
-- a reference to a missing object;
-- a figure without its required caption;
-- structurally invalid metadata or document ordering;
-- an empty table cell when the SSAU rule requires a dash or explicit value.
+All developer diagnostics are English and carry stable `T2S-E...` or
+`T2S-W...` identifiers.
 
-### Warnings
+## Automated Checks
 
-Warnings report a probable STO violation with plausible legitimate contexts.
-The normal build continues and emits its outputs. Planned warning examples
-include:
+Run from the repository root:
 
-- `%`, `№`, or a bare mathematical comparison sign in prose;
-- a minus sign before a negative value in prose;
-- a number from one through nine written as a digit without a unit;
-- a potentially breakable space between a number and its unit;
-- a non-standard abbreviation;
-- a word break in a heading or caption that the renderer may need to prevent.
+```sh
+uv run ruff check .
+uv run pytest
+uv run tex2sto check examples/master-thesis/main.tex --strict
+uv run tex2sto build examples/master-thesis/main.tex -o build/example --pdf
+uv build
+git diff --check
+```
 
-`--strict` promotes every warning to an error. A narrow, rule-specific local
-suppression mechanism is required, but its source syntax is deliberately
-deferred until the dialect grammar is designed. Blanket suppression should not
-be the default.
+The pytest suite includes positive and negative dialect fixtures, numbering and
+transformation checks, real DOCX construction, OOXML assertions, and independent
+PDF construction with A4/text assertions. Tests requiring an external renderer
+skip only when that renderer is absent.
 
-All machine-facing diagnostic identifiers and messages are written in English.
-Russian user documentation explains their meaning and resolution.
+## Structural Output Gates
 
-## Test Layers
+DOCX tests inspect selected OOXML rather than snapshotting the binary:
 
-### Unit tests
+- A4 portrait page size and 30/15/20/20 mm margins;
+- explicit `Tex2Sto ...` styles and editable body structures;
+- native OMML equations with profile numbering;
+- bookmarks and `NUMPAGES`/`PAGEREF` fields;
+- Russian list formats;
+- media relationships;
+- repeating table headers and the continuation conditional field.
 
-Use pytest for include resolution, dialect recognition, label/reference rules,
-numbering selection, profile validation, and diagnostic severity. Include both
-positive and negative cases for every dialect construct.
+PDF tests verify a real PDF header, A4 dimensions, structural content,
+appendices, and longtable continuation text.
 
-### Semantic fixtures
+## Visual and Manual Gates
 
-Maintain small `.tex` projects for each supported feature and at least one
-representative full document covering the complete v1 structure. Fixtures
-should make expected output metadata and numbering explicit.
+After renderer changes, render DOCX with the workspace `render_docx.py` helper
+and PDF with Poppler. Inspect all pages of the representative example, with
+special attention to title and assignment pages, contents, section page breaks,
+float order, equations, split tables, bibliography, and appendices.
 
-### DOCX structural tests
-
-Inspect selected OOXML properties instead of snapshotting the entire binary:
-
-- A4 portrait sections and 30/15/20/20 mm margins;
-- bottom-centered page numbering and suppressed title-page display;
-- explicit `Tex2Sto ...` styles;
-- editable OMML equations;
-- bookmarks, references, and static display text;
-- table header repetition and continuation behavior;
-- caption placement and appendix-local numbering;
-- 14 pt body text and 12 pt tables and listings.
-
-### Render tests
-
-Render DOCX through LibreOffice for development-time visual QA while treating
-Microsoft Word as the priority consumer. Render PDF pages with Poppler. Check
-representative and boundary pages for clipping, overlap, font substitution,
-caption separation, table splitting, page numbering, and unexpected blank
-pages.
-
-DOCX and PDF golden checks are independent. A page-count difference is not a
-failure by itself.
-
-### Manual release checks
-
-Before claiming Word compatibility for a release, open the representative
-document in a supported current Microsoft Word for macOS build and verify
-styles, editability, fields, equations, table continuation, and pagination.
+LibreOffice does not correctly evaluate the nested Word conditional used for a
+continuation-only table label. Before claiming a release compatible with Word,
+open the representative DOCX in a current Microsoft Word for macOS build,
+update all fields, and verify styles, editability, contents, equation layout,
+table continuation, and pagination.
 
 ## Dependency Upgrade Gate
 
-Pandoc and TeX Live are pinned in the Docker image. An upgrade is an explicit
-change that must:
-
-1. update the recorded versions and lock material;
-2. run all unit and semantic fixtures;
-3. run DOCX structural checks;
-4. regenerate and inspect DOCX and PDF golden renders;
-5. receive the manual Word compatibility check when DOCX output changed;
-6. record intentional output differences.
-
-## Planned Python Checks
-
-Python 3.12+, uv, pytest, and Ruff are confirmed choices. No dedicated type
-checker is planned. Do not add commands to this document until `pyproject.toml`
-exists and those commands have been executed successfully.
+Pandoc, TeX Live, Python, uv, and Python dependencies are pinned. An upgrade
+must update version records and lock material, pass every automated command,
+regenerate and inspect both visual outputs, receive Word field verification
+when DOCX changes, and record intentional output differences.

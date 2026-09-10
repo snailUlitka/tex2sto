@@ -2,13 +2,13 @@
 
 ## Project
 
-tex2sto is a planned Python CLI that compiles a deliberately restricted
+tex2sto is a Python CLI that compiles a deliberately restricted
 LaTeX dialect into editable DOCX and optional PDF documents that conform to
 Samara University STO 02068410-004-2018. DOCX is the primary output.
 
-The repository currently contains the engineering harness only. Do not claim
-that installation, build, lint, or test commands work until the corresponding
-project files and implementation exist.
+V1 is implemented as a uv-managed Python 3.12 application. Pandoc 3.11 produces
+DOCX, LuaLaTeX from TeX Live 2026 produces PDF, and both paths use resources
+owned by the `ssau` profile.
 
 ## Audience Boundary
 
@@ -70,11 +70,18 @@ project files and implementation exist.
 
 ## Current Validation
 
-Until executable tooling exists, validate documentation changes with:
+Run the checks relevant to the change:
 
 ```sh
+uv run ruff check .
+uv run pytest
+uv run tex2sto check examples/master-thesis/main.tex --strict
+uv run tex2sto build examples/master-thesis/main.tex -o build/example --pdf
+uv build
 git diff --check
 ```
 
-Also verify that every link in this file and `harness/README.md` resolves and
-that no planned command is described as already operational.
+Renderer changes require structural output checks and visual inspection of both
+formats. DOCX behavior that depends on fields must also be verified in current
+Microsoft Word before a release compatibility claim. Verify that links in this
+file, `harness/README.md`, the root README, and `docs/README.md` resolve.

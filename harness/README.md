@@ -7,7 +7,7 @@ It is intentionally separate from the Russian user documentation in `docs/`.
 
 - [product.md](product.md) defines the goal, v1 scope, non-goals, and confirmed
   product decisions.
-- [architecture.md](architecture.md) defines the planned toolchain, pipeline,
+- [architecture.md](architecture.md) defines the implemented toolchain, pipeline,
   component boundaries, output contracts, and repository shape.
 - [validation.md](validation.md) defines diagnostics, compliance boundaries,
   regression fixtures, and dependency-upgrade gates.

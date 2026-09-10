@@ -2,80 +2,67 @@
 
 ## Design Principle
 
-Use mature document technologies for their strengths and write custom code only
-for dialect control, SSAU-specific behavior, orchestration, validation, and
-conversion gaps. tex2sto must not grow into a general TeX engine or a DOCX
-writer.
+Use mature document technologies for conversion and custom code only for
+dialect control, SSAU semantics, orchestration, validation, and narrow format
+gaps. tex2sto is neither a general TeX engine nor a DOCX writer.
 
-## Tool Responsibilities
-
-### Python
-
-Python owns the CLI, project-root discovery, restricted `\input` expansion,
-diagnostics, profile selection, metadata, validation, numbering decisions,
-external-process orchestration, and focused OOXML post-processing.
-
-Python must not parse the full LaTeX language. It recognizes the tex2sto
-dialect, delegates supported document syntax to Pandoc, and rejects unsupported
-raw TeX instead of guessing.
-
-### Pandoc and Lua filters
-
-Pandoc is the primary DOCX conversion engine. Its parsed document model is the
-main representation for supported prose, lists, tables, images, citations, and
-math on the DOCX path. Lua filters translate tex2sto-specific structures into
-Pandoc elements and assign custom Word styles.
-
-A profile-owned `reference.docx` supplies page setup, base typography, and the
-`Tex2Sto ...` style family. Pandoc's tested math conversion should produce
-native OMML equations.
-
-### Focused OOXML post-processing
-
-Python may patch the generated DOCX where Pandoc cannot reliably express a
-required Word behavior. Expected examples include explicit style assignment,
-bookmarks or fields, repeating table headers, table-continuation behavior, and
-other properties verified by structural tests.
-
-This layer patches a Pandoc-produced document. It does not construct the DOCX
-package from scratch.
-
-### LuaLaTeX
-
-LuaLaTeX is the PDF engine. The validated source is rendered with an SSAU-owned
-class or package. The PDF path does not round-trip the already-LaTeX source
-through Pandoc.
-
-### LibreOffice
-
-LibreOffice is not required to build user outputs. It may be installed in a
-development or test image to render DOCX for visual regression checks. Microsoft
-Word remains the priority consumer for final DOCX behavior.
-
-## Planned Pipeline
+## Implemented Pipeline
 
 ```text
 controlled .tex project
         |
         v
-Python include resolver and dialect validator
+Python include expansion, metadata parsing, validation, and shared numbering
         |
-        +--> Pandoc parse/AST --> Lua filters --> reference.docx
+        +--> Pandoc 3.11 --> Lua style filter --> reference.docx
         |                                      |
         |                                      v
-        |                            focused OOXML patches --> DOCX
+        |                       focused python-docx OOXML patches --> DOCX
         |
-        +--> SSAU LaTeX class/package --> LuaLaTeX --> PDF
+        +--> SSAU LaTeX class --> LuaLaTeX / TeX Live 2026 --> PDF
 ```
 
-The renderers share source metadata, labels, validation results, and numbering
-policy. They own output-specific layout so they can satisfy the same standard
-without requiring identical page breaks.
+The renderers share source metadata, labels, citations, validation results, and
+numbering decisions. They own output-specific layout and may paginate
+differently.
 
-## Planned Repository Shape
+## Component Boundaries
 
-The implementation scaffold should use a packaged uv application with the
-distribution and import name `tex2sto`:
+### Python application
+
+`src/tex2sto/cli.py` owns `check` and `build`, exit codes, and CLI options.
+`dialect/` performs balanced-argument recognition and safe local `\input`
+expansion without attempting to parse arbitrary LaTeX. `model/` stores the
+document and builds deterministic object and citation indices. `validation/`
+enforces the accepted syntax, metadata, structure, references, and conservative
+prose warnings. `transform.py` lowers semantic commands into renderer input.
+
+### DOCX path
+
+Pandoc parses supported prose, headings, lists, tables, images, and math. The
+`ssau.lua` filter assigns profile styles and the profile `reference.docx`
+supplies A4 setup, margins, fonts, footer, and the `Tex2Sto ...` style family.
+
+Focused Python post-processing adds the title and assignment pages, abstract
+statistics, editable page fields and contents entries, bookmarks, right-aligned
+equation numbers, Russian list numbering, repeating table rows, and conditional
+continuation labels. It patches Pandoc output rather than constructing the
+package from scratch.
+
+### PDF path
+
+LuaLaTeX receives lowered LaTeX directly. `tex2sto-ssau.cls` owns A4 geometry,
+typography, structural pages, headings, lists, fixed object placement, longtable
+continuations, equations, listings, and page numbering. The PDF path never
+round-trips through DOCX or LibreOffice.
+
+### QA-only rendering
+
+LibreOffice is used only to render DOCX during visual QA. Poppler renders and
+inspects PDF. Microsoft Word is the priority DOCX consumer and remains the
+manual release gate for nested field behavior.
+
+## Repository Shape
 
 ```text
 src/tex2sto/
@@ -84,71 +71,43 @@ src/tex2sto/
   model/
   validation/
   renderers/
-  profiles/
-    ssau/
-      pandoc/
-      latex/
-      reference.docx
+  profiles/ssau/
+    pandoc/ssau.lua
+    pandoc/reference.docx
+    latex/tex2sto-ssau.cls
+    toolchain.toml
 tests/
-  unit/
-  fixtures/
-  golden/
+examples/master-thesis/
+docs/
+harness/
+Dockerfile
 ```
 
-Directories should be created only when the corresponding implementation or
-fixture is added. Do not add empty package trees to imitate this map.
+Package resources are shipped inside the Python wheel. Generated `build/` and
+`dist/` artifacts are not source-controlled.
 
 ## Profile Boundary
 
-`ssau` is the first profile. Its metadata records STO 02068410-004-2018 and the
-2019 edition with Amendment No. 1. Its initial rules may be ordinary Python
-constants and profile resources.
-
-Keep profile-owned concerns out of generic orchestration:
-
-- accepted structural elements and required metadata;
-- typography, margins, captions, and page-numbering rules;
-- title-page resources;
-- numbering defaults;
-- profile-specific validation rules;
-- Pandoc filters, Word styles, and LaTeX class/package resources.
-
-Do not design a universal external profile schema until the SSAU implementation
-has exposed real variation points.
+`ssau` is the only V1 profile. Profile resources own university-specific page
+layout and renderer behavior. The current Python validation rules are allowed
+to be hardcoded while they are clearly SSAU-derived and covered by the profile
+checklist. A general external profile schema remains deferred until a second
+real standard exposes stable variation points.
 
 ## Numbering Policy
 
-Figures, tables, and equations choose numbering independently.
+Figures, tables, and equations choose numbering independently. The default
+`auto` mode selects section-local numbering for a type when the document has at
+least two sections, that type occurs in at least two sections, and its count is
+at least the threshold of 10. Otherwise numbering is global. CLI overrides can
+set the common mode, threshold, or per-type mode.
 
-The default mode is `auto`. For a given object type, auto mode selects
-section-local numbering when:
+Appendix objects always use appendix-local identifiers. Appendix letters use
+the STO-permitted sequence and exclude forbidden Cyrillic letters.
 
-- the document contains at least two numbered sections;
-- objects of that type occur in at least two numbered sections; and
-- the object count is at least the threshold, initially 10.
+## Toolchain Contract
 
-Otherwise it selects global numbering. The selected mode stays consistent for
-that object type throughout the document.
-
-The planned CLI controls are:
-
-- `--numbering auto|global|section` for the common mode;
-- `--numbering-threshold N` for the auto threshold;
-- `--figure-numbering`, `--table-numbering`, and `--equation-numbering` for
-  per-type overrides.
-
-Appendix objects always use appendix-local prefixes such as `А.1` regardless of
-the main-document selection.
-
-## CLI Contract
-
-The planned interface is:
-
-```text
-tex2sto build document.tex
-tex2sto build document.tex -o output --pdf
-```
-
-The first form writes DOCX only. `--pdf` adds PDF rather than replacing DOCX.
-No command in this section is operational until the packaged application is
-implemented and verified.
+`src/tex2sto/profiles/ssau/toolchain.toml` pins Pandoc 3.11, TeX Live 2026,
+and Python 3.12. Renderer startup rejects incompatible external versions.
+`uv.lock` freezes Python dependencies. Docker installs the same pins and native
+macOS uses the same runtime contract.

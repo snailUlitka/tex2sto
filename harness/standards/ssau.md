@@ -127,8 +127,10 @@ Derived from clauses 6.2.1-6.2.14:
 - use appendix-local identifiers such as `Таблица А.1`;
 - keep a table note inside the table above its final boundary.
 
-Automatic continuation labeling in editable Word is a known high-risk feature
-that requires a focused implementation spike and Word verification.
+Editable Word continuation labels use a repeated header row containing a
+conditional `PAGE`/`PAGEREF` field. PDF uses native `longtable` continuation
+heads. The field mechanism remains a manual Microsoft Word release gate because
+LibreOffice does not evaluate the nested conditional field accurately.
 
 ## Equations
 

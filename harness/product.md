@@ -17,9 +17,9 @@ The initial user is a Samara University student who prefers LaTeX authoring but
 must submit a Word document. The dialect and CLI documentation are therefore
 user-facing, Russian-language products, not internal implementation notes.
 
-## First Meaningful Deliverable
+## V1 Deliverable
 
-The first end-to-end deliverable is a packaged CLI that accepts one master-level
+The implemented end-to-end deliverable is a packaged CLI that accepts one master-level
 SSAU document written in the supported dialect and produces a styled, editable
 DOCX by default. The same source can additionally produce a conforming PDF with
 `--pdf`.
@@ -93,9 +93,9 @@ the `.tex` project rather than using a `.bib` file.
 - Docker is the primary reproducible environment.
 - Native macOS is required and uses Homebrew for external dependencies.
 - Homebrew is not used inside the Linux Docker image.
-- Python 3.12 or newer is the planned application runtime.
-- uv is the planned Python project and dependency manager.
-- pytest and Ruff are planned. There is no dedicated mypy or pyright step;
+- Python 3.12.11 is the application runtime.
+- uv 0.12.x is the Python project and dependency manager.
+- pytest and Ruff are configured. There is no dedicated mypy or pyright step;
   Ruff provides linting and lightweight static checks but is not represented as
   a full type checker.
 - Pandoc and TeX Live versions are pinned. Upgrades are explicit maintenance
