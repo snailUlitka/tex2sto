@@ -1,0 +1,3 @@
+pandoc = "3.11"
+tex-live = "2026"
+python = "3.12"

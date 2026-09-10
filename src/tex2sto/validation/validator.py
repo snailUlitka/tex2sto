@@ -281,6 +281,7 @@ def _environment_label(content: str) -> str | None:
 def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> None:
     source = project.body
     labels = [call.args[0].strip() for call in find_command_calls(source, "label", 1)]
+    labels.extend(call.args[0].strip() for call in find_command_calls(source, "appendix", 2))
     for label, count in Counter(labels).items():
         if count > 1:
             diagnostics.error("T2S-E401", f"duplicate label: {label}")
