@@ -9,6 +9,8 @@ from enum import StrEnum
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model.document import SourceProject
 
+APPENDIX_LETTERS = tuple("АБВГДЕЖИКЛМНПРСТУФХЦШЩЭЮЯ")
+
 
 class ObjectKind(StrEnum):
     FIGURE = "figure"
@@ -57,7 +59,7 @@ def _context_at(
 
 def _appendix_letter(number: int) -> str:
     # V1 intentionally supports the normal single-letter appendix range.
-    return chr(ord("А") + number - 1)
+    return APPENDIX_LETTERS[number - 1]
 
 
 def _effective_mode(

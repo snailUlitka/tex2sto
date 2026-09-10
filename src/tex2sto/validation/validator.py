@@ -14,6 +14,7 @@ from tex2sto.dialect.syntax import (
     replace_spans,
 )
 from tex2sto.model import SourceProject
+from tex2sto.model.numbering import APPENDIX_LETTERS
 from tex2sto.validation.prose import check_prose
 
 METADATA_COMMANDS = set(SINGLE_COMMANDS) | {
@@ -182,6 +183,7 @@ REQUIRED_METADATA = {
     "program_name": "\\programname",
     "study_profile": "\\studyprofile",
     "supervisor_name": "\\supervisor",
+    "norm_controller": "\\normcontroller",
     "year": "\\year",
 }
 
@@ -272,6 +274,47 @@ def _validate_structure(project: SourceProject, diagnostics: DiagnosticBag) -> N
             "T2S-W301",
             "bibliography marker is present but no sources are declared",
         )
+    conclusion = find_command_calls(body, "conclusion", 0)
+    appendices = find_command_calls(body, "appendix", 2)
+    if bibliography_marker and conclusion and bibliography_marker[0].start < conclusion[0].start:
+        diagnostics.error("T2S-E304", "bibliography must follow the conclusion")
+    if appendices:
+        boundary = (
+            bibliography_marker[0].start
+            if bibliography_marker
+            else conclusion[0].start
+            if conclusion
+            else None
+        )
+        if boundary is not None and appendices[0].start < boundary:
+            diagnostics.error("T2S-E305", "appendices must follow the bibliography or conclusion")
+        if len(appendices) > len(APPENDIX_LETTERS):
+            diagnostics.error(
+                "T2S-E306",
+                f"v1 supports at most {len(APPENDIX_LETTERS)} single-letter appendices",
+            )
+    introduction = find_command_calls(body, "introduction", 0)
+    if introduction:
+        for command in ("definitions", "abbreviations"):
+            calls = find_command_calls(body, command, 0)
+            if calls and calls[0].start > introduction[0].start:
+                diagnostics.error("T2S-E307", f"\\{command} must precede the introduction")
+    for command in ("section", "subsection", "subsubsection"):
+        for call in find_command_calls(body, command, 1):
+            title = call.args[0].strip()
+            first_letter = next((character for character in title if character.isalpha()), "")
+            if first_letter and not first_letter.isupper():
+                diagnostics.error(
+                    "T2S-E308",
+                    f"\\{command} title must start with an uppercase letter",
+                    line=call.line,
+                )
+            if title.endswith("."):
+                diagnostics.error(
+                    "T2S-E309",
+                    f"\\{command} title must not end with a period",
+                    line=call.line,
+                )
 
 
 def _environment_label(content: str) -> str | None:
@@ -286,13 +329,17 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
     for label, count in Counter(labels).items():
         if count > 1:
             diagnostics.error("T2S-E401", f"duplicate label: {label}")
-    references = [call.args[0].strip() for call in find_command_calls(source, "ref", 1)]
+    reference_calls = find_command_calls(source, "ref", 1)
+    references = [call.args[0].strip() for call in reference_calls]
+    first_references: dict[str, int] = {}
+    for call in reference_calls:
+        first_references.setdefault(call.args[0].strip(), call.start)
     for reference in references:
         if reference not in labels:
             diagnostics.error("T2S-E402", f"reference points to a missing label: {reference}")
 
     for environment, prefix in (("figure", "fig:"), ("table", "tab:"), ("longtable", "tab:")):
-        for _, _, content in find_environment(source, environment):
+        for start, _, content in find_environment(source, environment):
             captions = find_command_calls(content, "caption", 1)
             label = _environment_label(content)
             if len(captions) != 1:
@@ -301,6 +348,17 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
                 diagnostics.error("T2S-E404", f"every {environment} requires a {prefix} label")
             elif label not in references:
                 diagnostics.error("T2S-E405", f"every {environment} must be referenced: {label}")
+            elif first_references[label] >= start:
+                diagnostics.error(
+                    "T2S-E416",
+                    f"{environment} must follow its first reference: {label}",
+                )
+            if captions and captions[0].args[0].strip().endswith("."):
+                diagnostics.error(
+                    "T2S-E417",
+                    f"{environment} caption must not end with a period",
+                    line=captions[0].line,
+                )
             if environment == "longtable":
                 table_heads = find_command_calls(content, "tablehead", 1)
                 if len(table_heads) != 1:
@@ -346,6 +404,22 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
             diagnostics.error("T2S-E406", "appendix labels must start with app:", line=call.line)
         elif label not in references:
             diagnostics.error("T2S-E407", f"every appendix must be referenced: {label}")
+        elif first_references[label] >= call.start:
+            diagnostics.error(
+                "T2S-E419",
+                f"appendix must follow its first reference: {label}",
+                line=call.line,
+            )
+    referenced_appendices = sorted(
+        (first_references[call.args[0].strip()], call.args[0].strip())
+        for call in appendix_calls
+        if call.args[0].strip() in first_references
+    )
+    declared_appendices = [call.args[0].strip() for call in appendix_calls]
+    if [label for _, label in referenced_appendices] != [
+        label for label in declared_appendices if label in first_references
+    ]:
+        diagnostics.error("T2S-E418", "appendices must follow first-reference order")
 
     for environment in ("equation", "align"):
         for _, _, content in find_environment(source, environment):

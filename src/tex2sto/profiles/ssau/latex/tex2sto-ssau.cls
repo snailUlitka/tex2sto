@@ -6,14 +6,21 @@
 \RequirePackage{polyglossia}
 \setdefaultlanguage{russian}
 \setotherlanguage{english}
-\setmainfont{Times New Roman}
-\setsansfont{Times New Roman}
-\setmonofont{Times New Roman}
+\IfFontExistsTF{Times New Roman}{%
+  \setmainfont{Times New Roman}
+  \setsansfont{Times New Roman}
+  \setmonofont{Times New Roman}
+}{%
+  \setmainfont{TeX Gyre Termes}
+  \setsansfont{TeX Gyre Termes}
+  \setmonofont{TeX Gyre Termes}
+}
 \RequirePackage{setspace}
 \onehalfspacing
 \setlength{\parindent}{12.5mm}
 \setlength{\parskip}{0pt}
 \RequirePackage{graphicx}
+\RequirePackage{float}
 \RequirePackage{amsmath}
 \RequirePackage{longtable}
 \RequirePackage{booktabs}
@@ -21,6 +28,11 @@
 \RequirePackage{listings}
 \RequirePackage[hidelinks]{hyperref}
 \captionsetup{font=normalsize,labelformat=empty,labelsep=none}
+\renewcommand{\labelitemi}{---}
+\renewcommand{\labelitemii}{---}
+\renewcommand{\labelitemiii}{---}
+\renewcommand{\labelenumi}{\asbuk{enumi})}
+\renewcommand{\labelenumii}{\arabic{enumii})}
 \lstset{basicstyle=\fontsize{12}{14}\selectfont,breaklines=true,frame=single}
 \makeatletter
 \renewcommand\section{\@startsection{section}{1}{\z@}{-3.5ex \@plus -1ex \@minus -.2ex}{2.3ex \@plus.2ex}{\normalfont\fontsize{14}{17}\bfseries}}
@@ -31,6 +43,7 @@
 \newcommand{\texstructural}[1]{\begin{center}\bfseries #1\end{center}}
 \newcommand{\texappendix}[2]{\texstructural{ПРИЛОЖЕНИЕ #1}\begin{center}#2\end{center}}
 \newcommand{\texinstitute}[1]{\def\texStoredInstitute{#1}}
+\newcommand{\texfaculty}[1]{\def\texStoredFaculty{#1}}
 \newcommand{\texdepartment}[1]{\def\texStoredDepartment{#1}}
 \newcommand{\textitle}[1]{\def\texStoredTitle{#1}}
 \newcommand{\texprogramcode}[1]{\def\texStoredProgramCode{#1}}
@@ -40,6 +53,7 @@
 \newcommand{\texstudentgroup}[1]{\def\texStoredStudentGroup{#1}}
 \newcommand{\texsupervisordetails}[1]{\def\texStoredSupervisorDetails{#1}}
 \newcommand{\texsupervisor}[1]{\def\texStoredSupervisor{#1}}
+\newcommand{\texnormcontroller}[1]{\def\texStoredNormController{#1}}
 \newcommand{\texcity}[1]{\def\texStoredCity{#1}}
 \newcommand{\texyear}[1]{\def\texStoredYear{#1}}
 \newcommand{\textitlepage}{%
@@ -49,11 +63,11 @@
   высшего образования\\
   «Самарский национальный исследовательский университет\\
   имени академика С. П. Королева»\\[1em]
-  \texStoredInstitute\\\texStoredDepartment\\[4em]
+  \texStoredInstitute\\\texStoredFaculty\\\texStoredDepartment\\[4em]
   {\bfseries ВЫПУСКНАЯ КВАЛИФИКАЦИОННАЯ РАБОТА\\[2em]\texStoredTitle\par}
   \vfill
   \begin{flushleft}Направление \texStoredProgramCode\ \texStoredProgramName\\Профиль «\texStoredStudyProfile»\end{flushleft}
-  \begin{flushright}Обучающийся: \texStoredAuthor, группа \texStoredStudentGroup\\Руководитель: \texStoredSupervisorDetails\ \texStoredSupervisor\end{flushright}
+  \begin{flushright}Обучающийся: \texStoredAuthor, группа \texStoredStudentGroup\\Руководитель: \texStoredSupervisorDetails\ \texStoredSupervisor\\Нормоконтролер: \texStoredNormController\end{flushright}
   \vfill \texStoredCity\ \texStoredYear
   \end{center}\clearpage}
 \newcommand{\texassignment}[5]{%
@@ -61,7 +75,10 @@
   Утверждающий: #1\par Цель работы: #2\par
   Вопросы, подлежащие разработке: #3\par
   Дата выдачи: #4\par Срок представления: #5\clearpage}
-\newcommand{\texassignmentcontinuation}{\texstructural{ЗАДАНИЕ (ПРОДОЛЖЕНИЕ)}\vfill\clearpage}
+\newcommand{\texassignmentcontinuation}[3]{%
+  \texstructural{ЗАДАНИЕ (ПРОДОЛЖЕНИЕ)}
+  Консультанты:\\#1\par\vfill
+  Руководитель: #2\par Обучающийся: #3\clearpage}
 \newcommand{\texabstract}[6]{%
   \texstructural{РЕФЕРАТ}
   Работа: \pageref{LastPage} с., #1 рис., #2 табл., #3 источник(ов), #4 прил.\par

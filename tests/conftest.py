@@ -18,6 +18,7 @@ def valid_source() -> str:
 \programname{Информатика и вычислительная техника}
 \studyprofile{Программное обеспечение средств вычислительной техники}
 \supervisor{Петров П. П.}{доцент, к.т.н.}
+\normcontroller{Кузнецова Н. Н.}
 \year{2026}
 \keywords{КОНТРОЛЬ; СИСТЕМА; МЕТОД; МОДЕЛЬ; РЕЗУЛЬТАТ}
 \begin{abstract}

@@ -42,6 +42,7 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
         f"\\{command}{{{_escape(value)}}}"
         for command, value in (
             ("texinstitute", metadata.institute),
+            ("texfaculty", metadata.faculty),
             ("texdepartment", metadata.department),
             ("textitle", metadata.title),
             ("texprogramcode", metadata.program_code),
@@ -51,6 +52,7 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
             ("texstudentgroup", metadata.student_group),
             ("texsupervisordetails", metadata.supervisor_details),
             ("texsupervisor", metadata.supervisor_name),
+            ("texnormcontroller", metadata.norm_controller),
             ("texcity", metadata.city),
             ("texyear", metadata.year),
         )
@@ -61,7 +63,15 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
 \texassignment{{{_escape(metadata.assignment_approver)}}}{{{_escape(metadata.assignment_goal)}}}{{{_escape(metadata.assignment_questions)}}}{{{_escape(metadata.assignment_issued)}}}{{{_escape(metadata.assignment_due)}}}
 """
         if metadata.assignment_variant == "2":
-            assignment += r"\texassignmentcontinuation" + "\n"
+            consultants = r"\\".join(
+                f"{_escape(item.role)}: {_escape(item.name)}"
+                for item in metadata.consultants
+            )
+            assignment += (
+                f"\\texassignmentcontinuation{{{consultants}}}"
+                f"{{{_escape(metadata.supervisor_name)}}}"
+                f"{{{_escape(metadata.author)}}}\n"
+            )
     return rf"""
 {title_commands}
 \textitlepage

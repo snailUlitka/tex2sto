@@ -58,8 +58,11 @@ def _title_page(document, project: SourceProject) -> list:
         "«Самарский национальный исследовательский университет",
         "имени академика С. П. Королева»",
         metadata.institute,
+        metadata.faculty,
         metadata.department,
     ):
+        if not text:
+            continue
         paragraph = _front_paragraph(document, text, style="Tex2Sto Title Institution")
         elements.append(paragraph._p)
     title_kind = _front_paragraph(
@@ -211,6 +214,32 @@ def _apply_styles(document) -> None:
                     paragraph.style = "Tex2Sto Table Text"
 
 
+def _format_lists(document) -> None:
+    numbering = document.part.numbering_part.element
+    for abstract in numbering.findall(qn("w:abstractNum")):
+        identifier = int(abstract.get(qn("w:abstractNumId"), "0"))
+        if identifier < 991:
+            continue
+        for level in abstract.findall(qn("w:lvl")):
+            number_format = level.find(qn("w:numFmt"))
+            level_text = level.find(qn("w:lvlText"))
+            if number_format is None or level_text is None:
+                continue
+            current_format = number_format.get(qn("w:val"))
+            current_text = level_text.get(qn("w:val"), "")
+            if current_format == "bullet":
+                level_text.set(qn("w:val"), "\u2014")
+                run_properties = level.find(qn("w:rPr"))
+                if run_properties is not None:
+                    level.remove(run_properties)
+                continue
+            if current_format == "lowerLetter":
+                number_format.set(qn("w:val"), "russianLower")
+            elif current_format == "lowerRoman":
+                number_format.set(qn("w:val"), "decimal")
+            level_text.set(qn("w:val"), current_text.rstrip(".") + ")")
+
+
 def _toc_entries(document) -> list[tuple[int, str, str]]:
     headings: list[tuple[int, str, object]] = []
     for paragraph in document.paragraphs:
@@ -293,6 +322,7 @@ def _format_tables(document, project: SourceProject, index: NumberingIndex) -> N
 def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> None:
     document = Document(path)
     _apply_styles(document)
+    _format_lists(document)
     _format_equations(document, index)
     _format_tables(document, project, index)
     toc_entries = _toc_entries(document)

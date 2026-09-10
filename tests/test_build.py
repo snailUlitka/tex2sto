@@ -22,6 +22,7 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
 
     with ZipFile(docx_path) as package:
         document = package.read("word/document.xml").decode()
+        numbering = package.read("word/numbering.xml").decode()
         styles = package.read("word/styles.xml").decode()
         assert "Tex2StoHeading1" in document
         assert "Tex2StoTable" in document
@@ -37,6 +38,8 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert 'w:w="11906"' in page_size
         assert 'w:h="16838"' in page_size
         assert "Tex2Sto Structural Heading" in styles
+        assert 'w:val="russianLower"' in numbering
+        assert 'w:val="\u2014"' in numbering
         assert any(name.startswith("word/media/") for name in package.namelist())
 
 

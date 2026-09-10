@@ -78,3 +78,29 @@ def test_rejects_unknown_bibliography_kind(project_dir: Path) -> None:
     diagnostics = validate_project(load_project(master))
 
     assert any(item.code == "T2S-E504" for item in diagnostics.items)
+
+
+def test_object_must_follow_its_first_reference(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    reference = "Как показано на рисунке~\\ref{fig:scheme}, результат подтверждает модель.\n"
+    source = source.replace(reference, "")
+    master.write_text(source.replace("Уравнение", reference + "Уравнение"), encoding="utf-8")
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E416" for item in diagnostics.items)
+
+
+def test_section_title_must_be_uppercase_without_period(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8").replace(
+        "\\section{Основная часть}",
+        "\\section{основная часть.}",
+    )
+    master.write_text(source, encoding="utf-8")
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E308" for item in diagnostics.items)
+    assert any(item.code == "T2S-E309" for item in diagnostics.items)
