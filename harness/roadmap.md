@@ -55,10 +55,10 @@ criteria only and does not describe current renderer behavior.
   opened in current Microsoft Word and updated with `Ctrl+A`, `F9` must show the
   resolved page number for every entry; automatic update-on-open should remain
   enabled.
-- Treat definitions, terms, symbols, and abbreviations as one optional
-  structural element rather than two adjacent structural sections. Consolidate
-  their entries under one centered structural heading; confirm the canonical
-  heading text against the STO when implementing the dialect migration.
+- Treat definitions, designations, and abbreviations as one optional structural
+  element rather than two adjacent structural sections. Consolidate their
+  entries under the centered structural heading `ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И
+  СОКРАЩЕНИЯ`.
 - Treat the introduction as a structural element and center its page heading.
 - Render all numbered headings and structural-element headings in regular type:
   neither bold nor italic.
@@ -109,8 +109,10 @@ criteria only and does not describe current renderer behavior.
   publication place and publisher, year, issue, page range or total extent,
   URL, and access date.
 - Reconcile punctuation and separators with the normative bibliography standard
-  during implementation instead of copying inconsistent dash and slash usage
-  from the example document.
+  during implementation. The example mixes an en dash in `– URL:`, an em dash
+  before publication details, an ASCII hyphen in `-576 с.` and page ranges,
+  compact `/author//container` separators, and both guillemets and straight
+  quotation marks; these variants must not become formatter rules accidentally.
 
 Each mechanical correction above requires a focused regression fixture and a
 rendered DOCX inspection before it can be removed from this backlog. The source
