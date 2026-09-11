@@ -108,11 +108,13 @@ criteria only and does not describe current renderer behavior.
   `[Электронный ресурс]`, author and contributor groups, container title,
   publication place and publisher, year, issue, page range or total extent,
   URL, and access date.
-- Reconcile punctuation and separators with the normative bibliography standard
-  during implementation. The example mixes an en dash in `– URL:`, an em dash
-  before publication details, an ASCII hyphen in `-576 с.` and page ranges,
-  compact `/author//container` separators, and both guillemets and straight
-  quotation marks; these variants must not become formatter rules accidentally.
+- Normalize the example's manually inconsistent dash glyphs. Use a spaced em
+  dash as a bibliographic separator, including `— URL:` and `— 576 с.`; use an
+  unspaced en dash only for numeric ranges such as `С. 3–9`.
+- Preserve compact type, responsibility, and container separators in the form
+  `[Текст]/автор//издание`; do not add spaces around either slash delimiter.
+- Normalize quoted titles and names to Russian guillemets `«...»`; do not retain
+  straight quotation marks from manually entered records.
 
 Each mechanical correction above requires a focused regression fixture and a
 rendered DOCX inspection before it can be removed from this backlog. The source
