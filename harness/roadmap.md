@@ -123,8 +123,11 @@ committed to the repository.
 
 ## Release Readiness Work
 
-- add CI after the hosting platform and secret policy are chosen;
-- choose the license and publish packaged release artifacts;
+- GitHub Actions CI validates lint, tests, the representative document, and the
+  package build without repository secrets;
+- MIT is the project license; keep third-party programs, fonts, and normative
+  documents outside that grant;
+- publish packaged release artifacts;
 - add signed or checksummed container publication if distribution requires it.
 
 ## Later Work
