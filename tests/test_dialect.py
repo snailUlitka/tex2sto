@@ -44,3 +44,29 @@ def test_rejects_input_escape(project_dir: Path) -> None:
 
     with pytest.raises(SourceError, match="escapes the project root"):
         load_project(master)
+
+
+def test_loads_named_structured_bibliography_fields(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    structured = r"""
+\begin{bibsource}
+\bibkey{site}
+\bibkind{web}
+\bibauthors{Организация}
+\bibtitle{Официальный сайт}
+\biburl{https://example.org}
+\bibaccessdate{01.09.2026}
+\end{bibsource}
+"""
+    master.write_text(
+        source.replace("\\begin{document}", structured + "\n\\begin{document}"),
+        encoding="utf-8",
+    )
+
+    project = load_project(master)
+
+    assert project.bibliography[1].key == "site"
+    assert project.bibliography[1].authors == "Организация"
+    assert project.bibliography[1].access_date == "01.09.2026"
+    assert "\\begin{bibsource}" not in project.body

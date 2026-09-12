@@ -87,7 +87,6 @@ def main() -> None:
     _style(
         document,
         "Tex2Sto Structural Heading",
-        bold=True,
         first_line=False,
         alignment=WD_PARAGRAPH_ALIGNMENT.CENTER,
         before=12,
@@ -97,8 +96,6 @@ def main() -> None:
         style = _style(
             document,
             f"Tex2Sto Heading {level}",
-            bold=level < 3,
-            italic=level >= 3,
             first_line=False,
             before=12,
             after=6,
@@ -106,10 +103,12 @@ def main() -> None:
         style.paragraph_format.keep_with_next = True
         _outline_level(style, level - 1)
     compact_styles = (
+        ("Tex2Sto Figure Content", 14, WD_PARAGRAPH_ALIGNMENT.CENTER),
         ("Tex2Sto Figure Caption", 14, WD_PARAGRAPH_ALIGNMENT.CENTER),
         ("Tex2Sto Table Caption", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Table Text", 12, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Code", 12, WD_PARAGRAPH_ALIGNMENT.LEFT),
+        ("Tex2Sto Symbols", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Abstract Keywords", 14, WD_PARAGRAPH_ALIGNMENT.JUSTIFY),
         ("Tex2Sto Title Institution", 12, WD_PARAGRAPH_ALIGNMENT.CENTER),
         ("Tex2Sto Title Details", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
@@ -121,7 +120,7 @@ def main() -> None:
         "Tex2Sto Table Continuation",
         size=12,
         first_line=False,
-        alignment=WD_PARAGRAPH_ALIGNMENT.RIGHT,
+        alignment=WD_PARAGRAPH_ALIGNMENT.LEFT,
     )
     continuation_style.font.color.rgb = RGBColor(255, 255, 255)
     equation_style = _style(
@@ -131,11 +130,11 @@ def main() -> None:
         alignment=WD_PARAGRAPH_ALIGNMENT.LEFT,
     )
     equation_style.paragraph_format.tab_stops.add_tab_stop(
-        Mm(77.5),
+        Mm(82.5),
         WD_TAB_ALIGNMENT.CENTER,
     )
     equation_style.paragraph_format.tab_stops.add_tab_stop(
-        Mm(155),
+        Mm(165),
         WD_TAB_ALIGNMENT.RIGHT,
     )
     for level in range(1, 5):
@@ -147,7 +146,7 @@ def main() -> None:
         )
         toc_style.paragraph_format.left_indent = Mm(5 * (level - 1))
         toc_style.paragraph_format.tab_stops.add_tab_stop(
-            Mm(155),
+            Mm(165),
             WD_TAB_ALIGNMENT.RIGHT,
             WD_TAB_LEADER.DOTS,
         )
@@ -181,7 +180,7 @@ def main() -> None:
 
     for level in range(1, 5):
         heading = document.styles[f"Heading {level}"]
-        _font(heading, 14, bold=level < 3, italic=level >= 3)
+        _font(heading, 14)
 
     document.styles["Tex2Sto Table Caption"].paragraph_format.keep_with_next = True
 

@@ -27,6 +27,23 @@ SINGLE_COMMANDS: dict[str, tuple[str, int]] = {
     "assignmentdue": ("assignment_due", 1),
 }
 
+BIBLIOGRAPHY_FIELDS = {
+    "bibkey": "key",
+    "bibkind": "kind",
+    "bibtitle": "title",
+    "bibauthors": "authors",
+    "bibmedium": "medium",
+    "bibcontributors": "contributors",
+    "bibcontainer": "container",
+    "bibplace": "place",
+    "bibpublisher": "publisher",
+    "bibyear": "year",
+    "bibissue": "issue",
+    "bibpages": "pages",
+    "biburl": "url",
+    "bibaccessdate": "access_date",
+}
+
 
 def _one(
     source: str, name: str, arity: int
@@ -42,6 +59,21 @@ def _one(
 
 def _clean(value: str) -> str:
     return " ".join(value.split())
+
+
+def _structured_source(content: str) -> BibliographyItem:
+    values: dict[str, str] = {}
+    for command, attribute in BIBLIOGRAPHY_FIELDS.items():
+        calls = find_command_calls(content, command, 1)
+        if len(calls) > 1:
+            raise SourceError(f"bibliography command \\{command} may appear only once per source")
+        if calls:
+            values[attribute] = _clean(calls[0].args[0])
+    missing = [field for field in ("key", "kind", "title") if not values.get(field)]
+    if missing:
+        commands = ", ".join(f"\\bib{field}" for field in missing)
+        raise SourceError(f"structured bibliography source is missing: {commands}")
+    return BibliographyItem(**values)
 
 
 def parse_project_source(
@@ -93,8 +125,21 @@ def parse_project_source(
 
     bibliography: list[BibliographyItem] = []
     for call in find_command_calls(source, "source", 5):
-        bibliography.append(BibliographyItem(*(_clean(value) for value in call.args)))
+        key, kind, authors, title, details = (_clean(value) for value in call.args)
+        bibliography.append(
+            BibliographyItem(
+                key=key,
+                kind=kind,
+                title=title,
+                authors=authors,
+                details=details,
+            )
+        )
         removals.append((call.start, call.end, ""))
+
+    for start, end, content in find_environment(source, "bibsource"):
+        bibliography.append(_structured_source(content))
+        removals.append((start, end, ""))
 
     cleaned = replace_spans(source, removals)
     cleaned_document = find_environment(cleaned, "document")

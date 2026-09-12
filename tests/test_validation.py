@@ -126,6 +126,58 @@ def test_rejects_unknown_bibliography_kind(project_dir: Path) -> None:
     assert any(item.code == "T2S-E504" for item in diagnostics.items)
 
 
+def test_structured_bibliography_requires_kind_specific_fields(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    structured = r"""
+\begin{bibsource}
+\bibkey{article}
+\bibkind{article}
+\bibtitle{Статья}
+\end{bibsource}
+"""
+    master.write_text(
+        source.replace("\\begin{document}", structured + "\n\\begin{document}"),
+        encoding="utf-8",
+    )
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E506" for item in diagnostics.items)
+
+
+def test_bibliography_fields_are_rejected_outside_source(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    master.write_text(
+        source.replace("\\begin{document}", "\\bibtitle{Лишнее}\n\\begin{document}"),
+        encoding="utf-8",
+    )
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E104" for item in diagnostics.items)
+
+
+def test_symbols_must_immediately_follow_numbered_equation(project_dir: Path) -> None:
+    master = project_dir / "main.tex"
+    source = master.read_text(encoding="utf-8")
+    symbols = r"""
+Промежуточный текст.
+\begin{symbols}
+\symbol{$x$}{значение}
+\end{symbols}
+"""
+    master.write_text(
+        source.replace("Источник~", symbols + "\nИсточник~"),
+        encoding="utf-8",
+    )
+
+    diagnostics = validate_project(load_project(master))
+
+    assert any(item.code == "T2S-E426" for item in diagnostics.items)
+
+
 def test_object_must_follow_its_first_reference(project_dir: Path) -> None:
     master = project_dir / "main.tex"
     source = master.read_text(encoding="utf-8")

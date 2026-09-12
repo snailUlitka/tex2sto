@@ -51,8 +51,9 @@ Derived from clauses 4.2.1-4.2.2:
 Derived from clauses 4.1.1-4.1.10:
 
 - supported structural elements include title, optional assignment, abstract,
-  contents, introduction, main sections, conclusion, optional definitions and
-  abbreviations, optional references, and optional appendices;
+  contents, introduction, main sections, conclusion, one optional combined
+  definitions/designations/abbreviations element, optional references, and
+  optional appendices;
 - structural-element headings are unnumbered, centered, uppercase, not
   underlined, and have no trailing period;
 - numbered sections, subsections, items, and subitems use Arabic hierarchical
@@ -158,10 +159,11 @@ Derived from clauses 5.9.1-5.9.2 and 6.4.1-6.4.3:
 - order sources by first mention;
 - number sources with Arabic numerals and no period after the number;
 - render citations in square brackets;
-- keep source records as structured tagged data inside the `.tex` project for
-  v1;
-- defer the complete field model until the additional bibliography STO is
-  reviewed.
+- keep source records as structured tagged data inside the `.tex` project;
+- cover author and contributor groups, medium, container, publication details,
+  issue, page range or extent, URL, and access date;
+- normalize Russian guillemets, spaced em-dash separators, numeric en-dash
+  ranges, and compact responsibility/container slash separators.
 
 ## Appendices and Listings
 

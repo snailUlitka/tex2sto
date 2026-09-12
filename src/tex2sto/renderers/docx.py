@@ -9,10 +9,11 @@ from importlib.resources import files
 from pathlib import Path
 
 from docx import Document
-from docx.enum.text import WD_BREAK
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import RGBColor
+from docx.shared import Mm, RGBColor
 
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
@@ -23,9 +24,23 @@ from tex2sto.renderers.docx_fields import (
     set_update_fields,
 )
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
-from tex2sto.transform import PAGE_BREAK_MARKER, TABLE_BREAK_MARKER, renderer_body
+from tex2sto.transform import (
+    PAGE_BREAK_MARKER,
+    SYMBOLS_MARKER,
+    TABLE_BREAK_MARKER,
+    renderer_body,
+)
 
 PROFILE = files("tex2sto") / "profiles" / "ssau" / "pandoc"
+
+STRUCTURAL_TOC_TITLES = {
+    "ВВЕДЕНИЕ": "Введение",
+    "ЗАКЛЮЧЕНИЕ": "Заключение",
+    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ": (
+        "Определения, обозначения и сокращения"
+    ),
+    "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ": "Список использованных источников",
+}
 
 
 def _pandoc() -> str:
@@ -165,46 +180,76 @@ def _abstract_and_toc(
         entry = _front_paragraph(document, style=f"Tex2Sto TOC {level}")
         entry.add_run(title)
         entry.add_run("\t")
-        add_field(entry, f"PAGEREF {bookmark} \\h", "?")
+        add_field(entry, f"PAGEREF {bookmark} \\h", "0")
         elements.append(entry._p)
     return elements
 
 
+def _strip_paragraph_prefix(paragraph, prefix: str) -> None:
+    for text in paragraph._p.iter(qn("w:t")):
+        if text.text and text.text.startswith(prefix):
+            text.text = text.text.removeprefix(prefix).lstrip()
+            return
+
+
+def _format_heading_runs(paragraph) -> None:
+    for tab in list(paragraph._p.iter(qn("w:tab"))):
+        tab.tag = qn("w:t")
+        tab.set(qn("xml:space"), "preserve")
+        tab.text = "\u00a0"
+    for run in paragraph.runs:
+        run.bold = False
+        run.italic = False
+        run_style = run._r.find(qn("w:rPr"))
+        if run_style is not None:
+            style = run_style.find(qn("w:rStyle"))
+            if style is not None and style.get(qn("w:val")) == "SectionNumber":
+                run_style.remove(style)
+
+
 def _apply_styles(document) -> None:
     document.styles["Tex2Sto Table Continuation"].font.color.rgb = RGBColor(0, 0, 0)
-    appendix_title_pending = False
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
         if text == PAGE_BREAK_MARKER:
             paragraph.clear()
             paragraph.add_run().add_break(WD_BREAK.PAGE)
             paragraph.style = "Tex2Sto Body"
-        elif paragraph.style.name.startswith("Heading "):
-            level = paragraph.style.name.rsplit(" ", 1)[-1]
-            paragraph.style = f"Tex2Sto Heading {level}"
-        elif text.startswith(("Рисунок ", "Таблица ")):
-            paragraph.style = (
-                "Tex2Sto Figure Caption" if text.startswith("Рисунок ") else "Tex2Sto Table Caption"
-            )
         elif (
             text
             in {
                 "ВВЕДЕНИЕ",
                 "ЗАКЛЮЧЕНИЕ",
-                "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ",
-                "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ",
+                "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ",
                 "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
             }
             or text.startswith("ПРИЛОЖЕНИЕ ")
-            or (appendix_title_pending and text)
         ):
             paragraph.style = "Tex2Sto Structural Heading"
+        elif paragraph.style.name.startswith("Heading "):
+            level = paragraph.style.name.rsplit(" ", 1)[-1]
+            paragraph.style = f"Tex2Sto Heading {level}"
+        elif paragraph._p.find(f".//{qn('w:drawing')}") is not None:
+            paragraph.style = "Tex2Sto Figure Content"
+        elif text.startswith(("Рисунок ", "Таблица ")):
+            paragraph.style = (
+                "Tex2Sto Figure Caption" if text.startswith("Рисунок ") else "Tex2Sto Table Caption"
+            )
+        elif text.startswith(SYMBOLS_MARKER):
+            _strip_paragraph_prefix(paragraph, SYMBOLS_MARKER)
+            paragraph.style = "Tex2Sto Symbols"
+        elif paragraph.style.name == "Source Code":
+            paragraph.style = "Tex2Sto Code"
         elif paragraph.style.name in {"Normal", "First Paragraph"}:
             paragraph.style = "Tex2Sto Body"
-        if text.startswith("ПРИЛОЖЕНИЕ "):
-            appendix_title_pending = True
-        elif appendix_title_pending and text:
-            appendix_title_pending = False
+        if paragraph.style.name in {
+            "Tex2Sto Structural Heading",
+            "Tex2Sto Heading 1",
+            "Tex2Sto Heading 2",
+            "Tex2Sto Heading 3",
+            "Tex2Sto Heading 4",
+        }:
+            _format_heading_runs(paragraph)
     for table in document.tables:
         table.style = "Tex2Sto Table"
         if table.rows:
@@ -229,16 +274,31 @@ def _format_lists(document) -> None:
             current_format = number_format.get(qn("w:val"))
             current_text = level_text.get(qn("w:val"), "")
             if current_format == "bullet":
-                level_text.set(qn("w:val"), "\u2014")
+                level_text.set(qn("w:val"), "-")
                 run_properties = level.find(qn("w:rPr"))
                 if run_properties is not None:
                     level.remove(run_properties)
-                continue
-            if current_format == "lowerLetter":
+            elif current_format == "lowerLetter":
                 number_format.set(qn("w:val"), "russianLower")
             elif current_format == "lowerRoman":
                 number_format.set(qn("w:val"), "decimal")
-            level_text.set(qn("w:val"), current_text.rstrip(".") + ")")
+            if current_format != "bullet":
+                level_text.set(qn("w:val"), current_text.rstrip(".") + ")")
+            suffix = level.find(qn("w:suff"))
+            if suffix is None:
+                suffix = OxmlElement("w:suff")
+                level.append(suffix)
+            suffix.set(qn("w:val"), "nothing")
+    for paragraph in document.paragraphs:
+        properties = paragraph._p.pPr
+        if properties is None or properties.find(qn("w:numPr")) is None:
+            continue
+        run = OxmlElement("w:r")
+        text = OxmlElement("w:t")
+        text.set(qn("xml:space"), "preserve")
+        text.text = "\u00a0"
+        run.append(text)
+        paragraph._p.insert(1, run)
 
 
 def _toc_entries(document) -> list[tuple[int, str, str]]:
@@ -254,14 +314,12 @@ def _toc_entries(document) -> list[tuple[int, str, str]]:
             headings.append((int(style.rsplit(" ", 1)[-1]), text, paragraph))
 
     entries: list[tuple[int, str, str]] = []
-    skip_next = False
     for position, (level, title, paragraph) in enumerate(headings):
-        if skip_next:
-            skip_next = False
-            continue
-        if title.startswith("ПРИЛОЖЕНИЕ ") and position + 1 < len(headings):
-            title = f"{title} {headings[position + 1][1]}"
-            skip_next = True
+        if title.startswith("ПРИЛОЖЕНИЕ "):
+            parts = title.split()
+            title = f"Приложение {parts[1]}"
+        else:
+            title = STRUCTURAL_TOC_TITLES.get(title, title)
         bookmark = f"tex2sto_toc_{position + 1}"
         add_bookmark(paragraph, bookmark, position + 100)
         entries.append((level, title, bookmark))
@@ -279,14 +337,39 @@ def _format_equations(document, index: NumberingIndex) -> None:
         if math is None or equation_index >= len(numbers):
             continue
         math_paragraph.remove(math)
-        paragraph._p.remove(math_paragraph)
-        leading_run = OxmlElement("w:r")
-        leading_run.append(OxmlElement("w:tab"))
-        insertion = 1 if paragraph._p.pPr is not None else 0
-        paragraph._p.insert(insertion, leading_run)
-        paragraph._p.insert(insertion + 1, math)
-        paragraph.add_run(f"\t({numbers[equation_index]})")
-        paragraph.style = "Tex2Sto Equation"
+        table = document.add_table(rows=1, cols=3)
+        table.alignment = WD_TABLE_ALIGNMENT.LEFT
+        table.autofit = False
+        widths = (Mm(30), Mm(105), Mm(30))
+        table_width = table._tbl.tblPr.find(qn("w:tblW"))
+        table_width.set(qn("w:type"), "dxa")
+        table_width.set(qn("w:w"), str(sum(round(width.twips) for width in widths)))
+        grid_columns = table._tbl.tblGrid.findall(qn("w:gridCol"))
+        for position, (cell, width) in enumerate(zip(table.rows[0].cells, widths, strict=True)):
+            cell.width = width
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            grid_columns[position].set(qn("w:w"), str(round(width.twips)))
+            properties = cell._tc.get_or_add_tcPr()
+            margins = OxmlElement("w:tcMar")
+            for edge in ("top", "left", "bottom", "right"):
+                margin = OxmlElement(f"w:{edge}")
+                margin.set(qn("w:w"), "0")
+                margin.set(qn("w:type"), "dxa")
+                margins.append(margin)
+            properties.append(margins)
+        center = table.cell(0, 1).paragraphs[0]
+        center.style = "Tex2Sto Equation"
+        center.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        center._p.append(math)
+        number = table.cell(0, 2).paragraphs[0]
+        number.style = "Tex2Sto Equation"
+        number.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        number.add_run(f"({numbers[equation_index]})")
+        parent = paragraph._p.getparent()
+        insertion = parent.index(paragraph._p)
+        table._tbl.getparent().remove(table._tbl)
+        parent.insert(insertion, table._tbl)
+        parent.remove(paragraph._p)
         equation_index += 1
 
 
@@ -377,8 +460,8 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
     document = Document(path)
     _apply_styles(document)
     _format_lists(document)
-    _format_equations(document, index)
     _format_tables(document, project, index)
+    _format_equations(document, index)
     toc_entries = _toc_entries(document)
     anchor = document.element.body[0]
     elements = [

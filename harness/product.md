@@ -44,9 +44,10 @@ structural elements are present:
 - appendices with appendix-local numbering;
 - code listings, normally placed in appendices.
 
-Detailed bibliography rules from the additional university standard are
-deferred, but the v1 source format stores structured bibliography fields inside
-the `.tex` project rather than using a `.bib` file.
+The source format stores named structured bibliography fields inside the `.tex`
+project and covers the representative source categories accepted for v1.
+Additional normative bibliography clauses may refine those fields without
+introducing a `.bib` dependency.
 
 ## Output Contract
 

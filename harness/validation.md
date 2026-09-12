@@ -15,7 +15,7 @@ Errors stop a build. Implemented error families cover unknown syntax, math
 commands outside math, unsafe or cyclic `\input`, missing assets, metadata,
 structural order, heading form, duplicate or unresolved references, object
 labels and first references, table headers and empty cells, appendix order,
-and bibliography records.
+symbol-explanation placement, and kind-specific structured bibliography fields.
 
 Warnings cover abstract length, unused sources, and conservative prose patterns:
 detached signs, numeric minus, digits one through nine without a unit, breakable

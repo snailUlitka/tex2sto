@@ -40,86 +40,30 @@ user documentation are present.
   metrics when licensed Times New Roman is not available; normative PDF
   production still requires Times New Roman.
 
-## DOCX Acceptance Backlog
+## Completed DOCX Acceptance Work
 
-The following corrections were captured from the first generated-DOCX review
-on 2026-09-11. They are deliberately deferred: this section records acceptance
-criteria only and does not describe current renderer behavior.
+The corrections captured by the first generated-DOCX review on 2026-09-11 were
+implemented and regression-tested on 2026-09-12:
 
-### Structure and contents
+- structural contents entries use sentence case and updateable page-reference
+  fields without question-mark placeholders;
+- terminology is one optional structural element, introductions are centered,
+  headings use regular type, and heading numbers use non-breaking spaces;
+- ordinary body paragraphs retain the 1.25 cm indent while positioned content
+  uses explicit non-indented styles;
+- list labels use the prescribed literal hyphen or enumerator followed by U+00A0;
+- figure content, code, and continued-table labels use explicit alignments;
+- editable equation numbers use a symmetric borderless row that keeps the
+  equation centered and its number right-aligned, symbol explanations have
+  structured source syntax, and appendix designator/title lines share one
+  paragraph;
+- structured bibliography records cover web, legal, article, book, chapter,
+  conference, dataset, preprint, standard, and thesis sources with normalized
+  punctuation and compact responsibility/container separators.
 
-- Render structural-element entries in the table of contents in sentence case,
-  including `Введение`, `Заключение`, and `Приложение А`, rather than copying the
-  uppercase page heading.
-- Eliminate `?` placeholders from table-of-contents page references. A DOCX
-  opened in current Microsoft Word and updated with `Ctrl+A`, `F9` must show the
-  resolved page number for every entry; automatic update-on-open should remain
-  enabled.
-- Treat definitions, designations, and abbreviations as one optional structural
-  element rather than two adjacent structural sections. Consolidate their
-  entries under the centered structural heading `ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И
-  СОКРАЩЕНИЯ`.
-- Treat the introduction as a structural element and center its page heading.
-- Render all numbered headings and structural-element headings in regular type:
-  neither bold nor italic.
-- Separate every hierarchical heading number from its title with one
-  non-breaking, non-expanding space, not a tab.
-- Apply a 1.25 cm first-line indent to every ordinary body paragraph regardless
-  of the surrounding section level. Keep explicit exceptions for headings,
-  captions, equations, tables, lists, and code rather than inheriting a missing
-  indent accidentally.
-
-### Lists and positioned content
-
-- Use the literal hyphen-minus marker `-` for the first unordered-list level,
-  not an en dash, em dash, or another dash glyph.
-- Separate every list marker or enumerator from its content with one
-  non-breaking, non-expanding space (U+00A0), not a tab. Preserve the same rule
-  for nested alphabetic and numeric levels.
-- Center the figure content itself as well as its caption.
-- Left-align code-listing lines; do not justify or center them.
-- Left-align `Продолжение таблицы N` exactly like `Таблица N — Название`, with
-  no first-line indent.
-
-### Equations and appendices
-
-- For a numbered display equation, keep the editable equation visually centered
-  on the text area and place `(N)` at the right edge on the same line without
-  allowing the number to shift the equation away from the true center.
-- Place the symbol explanation immediately below the equation. Start the first
-  definition with `где` and no colon, put each subsequent symbol on a new line,
-  use an em dash between the symbol and its explanation, end intermediate
-  definitions with commas, and end the final definition with a period.
-- Render the appendix designator and title as one paragraph separated by a
-  manual line break: `ПРИЛОЖЕНИЕ А`, then the mixed-case title on the next line.
-  Do not create a second paragraph or paragraph-spacing gap between them.
-
-### Bibliography
-
-- Use the supplied expanded bibliography example as supporting evidence for a
-  representative fixture set, not as an instruction source or a replacement
-  for the normative bibliography standard.
-- Extend the bibliography model and formatter to cover at least institutional
-  and personal-author web resources, official and legal web documents, journal
-  articles with multiple authors, books and chapters, conference publications,
-  datasets, and preprints.
-- Preserve first-citation ordering and no-period Arabic entry numbers while
-  supporting the evidence shown by those fixtures: `[Текст]` and
-  `[Электронный ресурс]`, author and contributor groups, container title,
-  publication place and publisher, year, issue, page range or total extent,
-  URL, and access date.
-- Normalize the example's manually inconsistent dash glyphs. Use a spaced em
-  dash as a bibliographic separator, including `— URL:` and `— 576 с.`; use an
-  unspaced en dash only for numeric ranges such as `С. 3–9`.
-- Preserve compact type, responsibility, and container separators in the form
-  `[Текст]/автор//издание`; do not add spaces around either slash delimiter.
-- Normalize quoted titles and names to Russian guillemets `«...»`; do not retain
-  straight quotation marks from manually entered records.
-
-Each mechanical correction above requires a focused regression fixture and a
-rendered DOCX inspection before it can be removed from this backlog. The source
-DOCX and screenshots remain machine-local review evidence and must not be
-committed to the repository.
+The generated acceptance DOCX and rendered page images remain machine-local QA
+evidence and are not committed to the repository. Current Microsoft Word field
+refresh remains a manual release gate.
 
 ## Release Readiness Work
 
@@ -132,8 +76,8 @@ committed to the repository.
 
 ## Later Work
 
-- incorporate the additional bibliography STO and complete the bibliography
-  backlog above;
+- incorporate any additional bibliography STO clauses into the structured model
+  when normative evidence becomes available;
 - add more SSAU title-page variants;
 - add table notes and other structures only with normative fixtures;
 - study a second university standard and extract proven profile variation

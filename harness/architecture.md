@@ -44,9 +44,10 @@ Pandoc parses supported prose, headings, lists, tables, images, and math. The
 supplies A4 setup, margins, fonts, footer, and the `Tex2Sto ...` style family.
 
 Focused Python post-processing adds the title and assignment pages, abstract
-statistics, editable page fields and contents entries, bookmarks, right-aligned
-equation numbers, Russian list numbering, repeating table rows, and explicit
-continuation segments at validated `\tablebreak` points. Table-grid widths are
+statistics, editable page fields and contents entries, bookmarks, editable
+equation rows with symmetric side columns, Russian list numbering, repeating
+table rows, and explicit continuation segments at validated `\tablebreak`
+points. Table-grid widths are
 balanced from visible cell content before a longtable is split. The processor
 patches Pandoc output rather than constructing the package from scratch.
 

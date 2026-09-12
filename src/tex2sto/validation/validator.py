@@ -6,7 +6,7 @@ import re
 from collections import Counter
 
 from tex2sto.diagnostics import DiagnosticBag
-from tex2sto.dialect.metadata import SINGLE_COMMANDS
+from tex2sto.dialect.metadata import BIBLIOGRAPHY_FIELDS, SINGLE_COMMANDS
 from tex2sto.dialect.syntax import (
     CONTROL_WORD_RE,
     control_words,
@@ -20,7 +20,7 @@ from tex2sto.model import SourceProject
 from tex2sto.model.numbering import APPENDIX_LETTERS
 from tex2sto.validation.prose import check_prose
 
-METADATA_COMMANDS = set(SINGLE_COMMANDS) | {
+METADATA_COMMANDS = set(SINGLE_COMMANDS) | set(BIBLIOGRAPHY_FIELDS) | {
     "consultant",
     "keywords",
     "source",
@@ -34,6 +34,7 @@ STRUCTURE_COMMANDS = {
     "printbibliography",
     "appendix",
     "definition",
+    "symbol",
 }
 CONTENT_COMMANDS = {
     "appendix",
@@ -176,6 +177,8 @@ ALLOWED_ENVIRONMENTS = {
     "table",
     "tabular",
     "verbatim",
+    "bibsource",
+    "symbols",
 }
 MATH_ENVIRONMENTS = {
     "align",
@@ -254,6 +257,18 @@ def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> No
                 f"math command may appear only in math: \\{command}",
                 path=project.master,
                 line=line_number(source, match.start()),
+            )
+    bibliography_environments = find_environment(source, "bibsource")
+    for command in BIBLIOGRAPHY_FIELDS:
+        nested = sum(
+            len(find_command_calls(content, command, 1))
+            for _, _, content in bibliography_environments
+        )
+        if len(find_command_calls(source, command, 1)) != nested:
+            diagnostics.error(
+                "T2S-E104",
+                f"\\{command} may appear only inside bibsource",
+                path=project.master,
             )
 
 
@@ -336,6 +351,9 @@ def _validate_structure(project: SourceProject, diagnostics: DiagnosticBag) -> N
             calls = find_command_calls(body, command, 0)
             if calls and calls[0].start > introduction[0].start:
                 diagnostics.error("T2S-E307", f"\\{command} must precede the introduction")
+    for command in ("definitions", "abbreviations"):
+        if len(find_command_calls(body, command, 0)) > 1:
+            diagnostics.error("T2S-E310", f"\\{command} may appear only once")
     for command in ("section", "subsection", "subsubsection"):
         for call in find_command_calls(body, command, 1):
             title = call.args[0].strip()
@@ -511,6 +529,36 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
             elif label not in references:
                 diagnostics.error("T2S-E412", f"every {environment} must be referenced: {label}")
 
+    numbered_equations = sorted(
+        (start, end)
+        for environment in ("equation", "align")
+        for start, end, _ in find_environment(source, environment)
+    )
+    symbol_environments = find_environment(source, "symbols")
+    for start, _, content in symbol_environments:
+        symbols = find_command_calls(content, "symbol", 2)
+        if not symbols:
+            diagnostics.error("T2S-E424", "every symbols environment requires a \\symbol command")
+        for call in symbols:
+            if not all(value.strip() for value in call.args):
+                diagnostics.error(
+                    "T2S-E425",
+                    "symbol and explanation must not be empty",
+                    line=call.line,
+                )
+        preceding = [end for _, end in numbered_equations if end <= start]
+        if not preceding or mask_comments(source[max(preceding) : start]).strip():
+            diagnostics.error(
+                "T2S-E426",
+                "symbols must immediately follow a numbered equation or align environment",
+            )
+    nested_symbols = sum(
+        len(find_command_calls(content, "symbol", 2))
+        for _, _, content in symbol_environments
+    )
+    if len(find_command_calls(source, "symbol", 2)) != nested_symbols:
+        diagnostics.error("T2S-E427", "\\symbol may appear only inside symbols")
+
     for call in find_command_calls(source, "includegraphics", 1):
         asset = (project.root / call.args[0].strip()).resolve()
         try:
@@ -534,16 +582,51 @@ def _validate_bibliography(project: SourceProject, diagnostics: DiagnosticBag) -
     for key, count in Counter(keys).items():
         if count > 1:
             diagnostics.error("T2S-E501", f"duplicate source key: {key}")
-    allowed_kinds = {"article", "book", "standard", "thesis", "web"}
+    allowed_kinds = {
+        "article",
+        "book",
+        "chapter",
+        "conference",
+        "dataset",
+        "legal",
+        "preprint",
+        "standard",
+        "thesis",
+        "web",
+    }
     for item in project.bibliography:
         if not re.fullmatch(r"[A-Za-z0-9:_-]+", item.key):
             diagnostics.error("T2S-E503", f"invalid source key: {item.key}")
         if item.kind not in allowed_kinds:
             diagnostics.error("T2S-E504", f"unsupported source kind: {item.kind}")
-        if not item.title or not item.details:
+        if not item.title or (item.details == "" and not item.kind):
             diagnostics.error(
                 "T2S-E505",
-                f"source requires a title and publication details: {item.key}",
+                f"source requires a kind and title: {item.key}",
+            )
+        if item.details:
+            continue
+        required_fields = {
+            "article": ("container", "year", "pages"),
+            "book": ("place", "publisher", "year", "pages"),
+            "chapter": ("container", "publisher", "year", "pages"),
+            "conference": ("container", "year", "pages"),
+            "dataset": ("publisher", "year", "url", "access_date"),
+            "legal": ("url", "access_date"),
+            "preprint": ("container", "year", "url", "access_date"),
+            "standard": ("place", "publisher", "year", "pages"),
+            "thesis": ("place", "year", "pages"),
+            "web": ("url", "access_date"),
+        }
+        missing = [
+            field
+            for field in required_fields.get(item.kind, ())
+            if not getattr(item, field)
+        ]
+        if missing:
+            diagnostics.error(
+                "T2S-E506",
+                f"structured source {item.key} is missing fields: {', '.join(missing)}",
             )
     citations = [call.args[0].strip() for call in find_command_calls(project.body, "cite", 1)]
     for citation in citations:

@@ -51,6 +51,11 @@ Use a specific lowercase type such as `chore`, `docs`, `feature`, `fix`,
 `refactor`, or `test`. The subject and every body bullet must describe work that
 is present in that commit.
 
+Describe the externally understandable result, not the planning artifact that
+prompted it. Do not use internal workflow labels such as `backlog`, `roadmap
+item`, `todo`, or `task` as the subject's main concept; name the behavior,
+capability, or defect instead.
+
 ## Maintenance Contract
 
 Record stable project decisions here after they are confirmed. Do not preserve

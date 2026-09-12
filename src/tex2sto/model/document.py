@@ -16,9 +16,19 @@ class Consultant:
 class BibliographyItem:
     key: str
     kind: str
-    authors: str
     title: str
-    details: str
+    authors: str = ""
+    medium: str = ""
+    contributors: str = ""
+    container: str = ""
+    place: str = ""
+    publisher: str = ""
+    year: str = ""
+    issue: str = ""
+    pages: str = ""
+    url: str = ""
+    access_date: str = ""
+    details: str = ""
 
 
 @dataclass(slots=True)
