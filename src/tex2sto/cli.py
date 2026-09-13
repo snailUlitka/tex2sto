@@ -22,10 +22,14 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("source", type=Path)
     check.add_argument("--strict", action="store_true", help="promote warnings to errors")
 
-    build = subparsers.add_parser("build", help="build DOCX and optionally PDF")
+    build = subparsers.add_parser("build", help="build DOCX")
     build.add_argument("source", type=Path)
     build.add_argument("-o", "--output", type=Path)
-    build.add_argument("--pdf", action="store_true", help="add PDF output")
+    build.add_argument(
+        "--pdf",
+        action="store_true",
+        help="add an experimental PDF preview (not covered by v1 compatibility)",
+    )
     build.add_argument("--strict", action="store_true", help="promote warnings to errors")
     build.add_argument("--numbering", choices=("auto", "global", "section"), default="auto")
     build.add_argument("--numbering-threshold", type=int, default=10)

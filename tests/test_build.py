@@ -49,6 +49,7 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert "<m:oMath" in document
         assert "(1)" in document
         assert "Tex2StoEquation" in document
+        assert "Tex2StoAssignment" in document
         assert 'w:val="Tex2StoFigureContent"' in document
         assert 'w:val="Tex2StoSymbols"' in document
         assert 'w:val="Tex2StoCode"' in document
@@ -59,6 +60,18 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
             r"ПРИЛОЖЕНИЕ А</w:t>.*?<w:br/>.*?Пример программного кода</w:t>",
             document,
         )
+        for text in (
+            "по направлению подготовки",
+            "Тема:",
+            "Утверждающий:",
+            "Консультанты:",
+            "Разработана система",
+        ):
+            paragraph = next(
+                item for item in re.findall(r"<w:p(?: [^>]*)?>.*?</w:p>", document)
+                if text in item
+            )
+            assert "<w:br/>" not in paragraph
         assert re.search(
             r"<w:t[^>]*>1</w:t></w:r><w:r>.*?<w:t[^>]*>\u00a0</w:t>",
             document,

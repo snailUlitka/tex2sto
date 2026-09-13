@@ -6,26 +6,23 @@
 
 - Python 3.12.11;
 - uv 0.12.x;
-- Pandoc 3.11;
-- TeX Live 2026 с LuaLaTeX;
-- Times New Roman для нормативного PDF.
+- Pandoc 3.11.
 
-Версии Pandoc и TeX Live проверяются при каждом запуске рендера. Несовместимая
-версия останавливает сборку с кодом 2.
+Версия Pandoc проверяется при каждой сборке DOCX. Несовместимая версия
+останавливает сборку с кодом 2.
 
 ## macOS
 
-Установите uv, Pandoc и TeX Live удобным для системы способом. Homebrew можно
-использовать как источник внешних программ:
+Установите uv и Pandoc удобным для системы способом. Homebrew можно использовать
+как источник внешних программ:
 
 ```sh
 brew install uv pandoc
-brew install --cask mactex-no-gui
 ```
 
-После установки убедитесь, что `pandoc --version` показывает 3.11, а
-`tlmgr --version` — TeX Live 2026. Если менеджер пакетов уже предлагает другую
-основную версию, используйте Docker либо установите закреплённую версию вручную.
+После установки убедитесь, что `pandoc --version` показывает 3.11. Если менеджер
+пакетов уже предлагает другую основную версию, используйте Docker либо
+установите закреплённую версию вручную.
 
 Разверните Python-окружение из корня репозитория:
 
@@ -34,7 +31,11 @@ uv sync
 uv run tex2sto --version
 ```
 
-Для одной только сборки DOCX LuaLaTeX не запускается, но Pandoc обязателен.
+Для сборки DOCX Pandoc обязателен.
+
+Экспериментальный предварительный PDF по флагу `--pdf` требует TeX Live 2026 с
+LuaLaTeX. Для корректного шрифта ему также нужен лицензированный Times New Roman;
+этот формат не входит в гарантии совместимости версии 1.0.
 
 ## Docker
 
@@ -51,21 +52,18 @@ docker run --rm -v "$PWD:/work" tex2sto:0.1.0 \
   check examples/master-thesis/main.tex --strict
 
 docker run --rm -v "$PWD:/work" tex2sto:0.1.0 \
-  build examples/master-thesis/main.tex -o build/example --pdf
+  build examples/master-thesis/main.tex -o build/example
 ```
 
-Свободный шрифт Liberation Serif с кириллицей и Times-совместимой метрикой
-используется в контейнере только как запасной вариант, когда Times New Roman
-недоступен. Для нормативного PDF добавьте лицензированный Times New Roman в
-окружение сборки. DOCX запрашивает Times New Roman стилями документа и не
-встраивает шрифт.
+DOCX запрашивает Times New Roman стилями документа и не встраивает шрифт. Для
+экспериментального PDF контейнер использует Liberation Serif как запасной
+вариант, когда Times New Roman недоступен.
 
 ## Проверка установки
 
 ```sh
 uv run tex2sto check examples/master-thesis/main.tex --strict
-uv run tex2sto build examples/master-thesis/main.tex -o build/example --pdf
+uv run tex2sto build examples/master-thesis/main.tex -o build/example
 ```
 
-Успешная команда печатает абсолютные пути созданных файлов. Полный пример
-должен дать `main.docx` и `main.pdf`.
+Успешная команда печатает абсолютный путь созданного `main.docx`.

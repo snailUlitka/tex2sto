@@ -34,15 +34,17 @@ Run from the repository root:
 uv run ruff check .
 uv run pytest
 uv run tex2sto check examples/master-thesis/main.tex --strict
-uv run tex2sto build examples/master-thesis/main.tex -o build/example --pdf
+uv run tex2sto build examples/master-thesis/main.tex -o build/example
 uv build
+docker build --platform linux/amd64 -t tex2sto:ci .
 git diff --check
 ```
 
 The pytest suite includes positive and negative dialect fixtures, numbering and
-transformation checks, real DOCX construction, OOXML assertions, and independent
-PDF construction with A4/text assertions. Tests requiring an external renderer
-skip only when that renderer is absent.
+transformation checks, real DOCX construction, OOXML assertions, and preliminary
+PDF construction checks. Tests requiring an external renderer skip when that
+renderer is absent. Mandatory PDF renderer coverage in CI is deferred to v2;
+the v1 CI release gate must build the Docker image successfully.
 
 ## Structural Output Gates
 
@@ -50,6 +52,8 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 
 - A4 portrait page size and 30/15/20/20 mm margins;
 - explicit `Tex2Sto ...` styles and editable body structures;
+- real paragraphs for title details and assignment fields, with soft line breaks
+  limited to intentionally single-paragraph structures;
 - native OMML equations with profile numbering;
 - bookmarks and `NUMPAGES`/`PAGEREF` fields;
 - Russian list formats;
@@ -58,15 +62,16 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 - separate longtable segments, explicit page breaks, repeating headers, and
   visible continuation labels without renderer markers.
 
-PDF tests verify a real PDF header, A4 dimensions, structural content,
-appendices, and longtable continuation text.
+Existing PDF tests verify a real PDF header, A4 dimensions, selected structural
+content, appendices, and longtable continuation text. They exercise the preview
+implementation but are not a v1 release gate.
 
 ## Visual and Manual Gates
 
-After renderer changes, render DOCX with the workspace `render_docx.py` helper
-and PDF with Poppler. Inspect all pages of the representative example, with
-special attention to title and assignment pages, contents, section page breaks,
-float order, equations, split tables, bibliography, and appendices.
+After DOCX renderer changes, render DOCX with the workspace `render_docx.py`
+helper. Inspect all pages of the representative example, with special attention
+to title and assignment pages, contents, section page breaks, float order,
+equations, split tables, bibliography, and appendices.
 
 Before claiming a release compatible with Word, open the representative DOCX
 in a current Microsoft Word for macOS build, update all fields, and verify
@@ -76,7 +81,8 @@ the non-working repeated-row conditional field with explicit table segments.
 
 ## Dependency Upgrade Gate
 
-Pandoc, TeX Live, Python, uv, and Python dependencies are pinned. An upgrade
-must update version records and lock material, pass every automated command,
-regenerate and inspect both visual outputs, receive Word field verification
-when DOCX changes, and record intentional output differences.
+Pandoc, TeX Live, Python, uv, and Python dependencies are pinned. A v1 dependency
+upgrade must update version records and lock material, pass every automated
+command, regenerate and inspect the DOCX, receive Word field verification when
+DOCX changes, and record intentional output differences. PDF visual and CI
+upgrade gates become mandatory in v2.

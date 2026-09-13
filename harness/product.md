@@ -3,8 +3,8 @@
 ## Goal
 
 tex2sto lets a student author an academic document in a controlled LaTeX
-dialect and produce an editable DOCX and, optionally, a PDF that independently
-conform to Samara University STO 02068410-004-2018.
+dialect and produce an editable DOCX that conforms to Samara University
+STO 02068410-004-2018.
 
 The product should automate every encoded and mechanically verifiable rule.
 Claims about meaning, terminology, novelty, or writing quality remain subject
@@ -19,10 +19,11 @@ user-facing, Russian-language products, not internal implementation notes.
 
 ## V1 Deliverable
 
-The implemented end-to-end deliverable is a packaged CLI that accepts one master-level
-SSAU document written in the supported dialect and produces a styled, editable
-DOCX by default. The same source can additionally produce a conforming PDF with
-`--pdf`.
+The implemented end-to-end deliverable is a packaged CLI that accepts one
+master-level SSAU document written in the supported dialect and produces a
+styled, editable DOCX. The existing `--pdf` path is retained as an experimental
+preview outside the v1 compatibility contract. Conforming PDF output is a v2
+deliverable.
 
 ## V1 Document Scope
 
@@ -51,8 +52,9 @@ introducing a `.bib` dependency.
 
 ## Output Contract
 
-- DOCX is the default and priority output.
-- PDF is opt-in through `--pdf`.
+- DOCX is the supported v1 output.
+- `--pdf` is an opt-in experimental preview and carries no v1 conformance or
+  compatibility guarantee.
 - `-o` selects the output directory.
 - DOCX remains editable. Native Word content is preferred over rendered images,
   including native OMML equations through the tested Pandoc path.
@@ -61,8 +63,6 @@ introducing a `.bib` dependency.
   applied where practical.
 - Every semantic DOCX element uses an explicit custom style in the
   `Tex2Sto ...` family.
-- DOCX and PDF need not have identical pagination. Each output must satisfy the
-  applicable SSAU profile independently.
 
 ## Authoring Contract
 
@@ -99,13 +99,15 @@ introducing a `.bib` dependency.
 - pytest and Ruff are configured. There is no dedicated mypy or pyright step;
   Ruff provides linting and lightweight static checks but is not represented as
   a full type checker.
-- Pandoc and TeX Live versions are pinned. Upgrades are explicit maintenance
-  operations guarded by regression tests.
+- Pandoc and TeX Live versions are pinned. Pandoc upgrades are v1 maintenance
+  operations guarded by the full DOCX regression gates. TeX Live and PDF
+  regression coverage become release gates in v2.
 
 ## Explicit Non-goals for V1
 
 - accepting or rendering arbitrary LaTeX;
 - semantic or NLP review of academic prose;
+- conforming or compatibility-stable PDF output before v2;
 - page-identical DOCX and PDF output;
 - a general declarative schema for arbitrary universities;
 - title pages other than the initial master-level variant;

@@ -110,6 +110,7 @@ def main() -> None:
         ("Tex2Sto Code", 12, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Symbols", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Abstract Keywords", 14, WD_PARAGRAPH_ALIGNMENT.JUSTIFY),
+        ("Tex2Sto Assignment", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
         ("Tex2Sto Title Institution", 12, WD_PARAGRAPH_ALIGNMENT.CENTER),
         ("Tex2Sto Title Details", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
     )

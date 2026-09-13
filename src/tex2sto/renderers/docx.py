@@ -88,16 +88,19 @@ def _title_page(document, project: SourceProject) -> list:
     elements.append(title_kind._p)
     title = _front_paragraph(document, metadata.title.upper(), style="Tex2Sto Title Name")
     elements.append(title._p)
-    details = (
-        f"по направлению подготовки {metadata.program_code} {metadata.program_name}\n"
-        f"профиль «{metadata.study_profile}»\n\n"
-        f"Обучающийся: {metadata.author}, группа {metadata.student_group}\n"
-        f"Руководитель: {metadata.supervisor_details} {metadata.supervisor_name}"
-    )
+    details = [
+        f"по направлению подготовки {metadata.program_code} {metadata.program_name}",
+        f"профиль «{metadata.study_profile}»",
+        "",
+        f"Обучающийся: {metadata.author}, группа {metadata.student_group}",
+        f"Руководитель: {metadata.supervisor_details} {metadata.supervisor_name}",
+    ]
     if metadata.norm_controller:
-        details += f"\nНормоконтролер: {metadata.norm_controller}"
-    paragraph = _front_paragraph(document, details, style="Tex2Sto Title Details")
-    elements.append(paragraph._p)
+        details.append(f"Нормоконтролер: {metadata.norm_controller}")
+    elements.extend(
+        _front_paragraph(document, line, style="Tex2Sto Title Details")._p
+        for line in details
+    )
     city = _front_paragraph(
         document,
         f"{metadata.city} {metadata.year}",
@@ -116,17 +119,19 @@ def _assignment_pages(document, project: SourceProject) -> list:
     heading = _front_paragraph(document, "ЗАДАНИЕ", style="Tex2Sto Structural Heading")
     elements.append(heading._p)
     lines = (
-        f"на выпускную квалификационную работу обучающемуся {metadata.author}\n"
-        f"Тема: {metadata.title}\n"
-        f"Утверждающий: {metadata.assignment_approver}\n"
-        f"Цель работы: {metadata.assignment_goal or 'определяется содержанием работы'}\n"
-        f"Вопросы, подлежащие разработке: {metadata.assignment_questions}\n"
-        f"Дата выдачи: {metadata.assignment_issued}\n"
-        f"Срок представления: {metadata.assignment_due}"
+        f"на выпускную квалификационную работу обучающемуся {metadata.author}",
+        f"Тема: {metadata.title}",
+        f"Утверждающий: {metadata.assignment_approver}",
+        f"Цель работы: {metadata.assignment_goal or 'определяется содержанием работы'}",
+        f"Вопросы, подлежащие разработке: {metadata.assignment_questions}",
+        f"Дата выдачи: {metadata.assignment_issued}",
+        f"Срок представления: {metadata.assignment_due}",
     )
-    body = _front_paragraph(document, lines)
-    body.add_run().add_break(WD_BREAK.PAGE)
-    elements.append(body._p)
+    assignment_paragraphs = [
+        _front_paragraph(document, line, style="Tex2Sto Assignment") for line in lines
+    ]
+    assignment_paragraphs[-1].add_run().add_break(WD_BREAK.PAGE)
+    elements.extend(paragraph._p for paragraph in assignment_paragraphs)
     if metadata.assignment_variant == "2":
         continuation = _front_paragraph(
             document,
@@ -134,14 +139,19 @@ def _assignment_pages(document, project: SourceProject) -> list:
             style="Tex2Sto Structural Heading",
         )
         elements.append(continuation._p)
-        signatures = _front_paragraph(
-            document,
-            "Консультанты:\n"
-            + "\n".join(f"{item.role}: {item.name}" for item in metadata.consultants)
-            + f"\n\nРуководитель: {metadata.supervisor_name}\nОбучающийся: {metadata.author}",
-        )
-        signatures.add_run().add_break(WD_BREAK.PAGE)
-        elements.append(signatures._p)
+        signature_lines = [
+            "Консультанты:",
+            *(f"{item.role}: {item.name}" for item in metadata.consultants),
+            "",
+            f"Руководитель: {metadata.supervisor_name}",
+            f"Обучающийся: {metadata.author}",
+        ]
+        signature_paragraphs = [
+            _front_paragraph(document, line, style="Tex2Sto Assignment")
+            for line in signature_lines
+        ]
+        signature_paragraphs[-1].add_run().add_break(WD_BREAK.PAGE)
+        elements.extend(paragraph._p for paragraph in signature_paragraphs)
     return elements
 
 
@@ -171,7 +181,8 @@ def _abstract_and_toc(
         style="Tex2Sto Abstract Keywords",
     )
     elements.append(keywords._p)
-    abstract = _front_paragraph(document, project.metadata.abstract)
+    abstract_text = " ".join(project.metadata.abstract.split())
+    abstract = _front_paragraph(document, abstract_text)
     abstract.add_run().add_break(WD_BREAK.PAGE)
     elements.append(abstract._p)
     toc_heading = _front_paragraph(document, "СОДЕРЖАНИЕ", style="Tex2Sto Structural Heading")

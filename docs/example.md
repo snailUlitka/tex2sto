@@ -9,15 +9,17 @@
 
 ```sh
 uv run tex2sto check examples/master-thesis/main.tex --strict
-uv run tex2sto build examples/master-thesis/main.tex -o build/example --pdf
+uv run tex2sto build examples/master-thesis/main.tex -o build/example
 ```
 
 Будут созданы:
 
 ```text
 build/example/main.docx
-build/example/main.pdf
 ```
+
+Экспериментальный предварительный PDF можно дополнительно запросить флагом
+`--pdf`, но он не входит в гарантии совместимости версии 1.0.
 
 Чтобы начать свой документ, скопируйте каталог примера, замените метаданные и
 текст, но сохраняйте семантические команды. Не копируйте прямое форматирование

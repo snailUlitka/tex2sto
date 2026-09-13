@@ -2,11 +2,11 @@
 
 ## Current State
 
-V1 is implemented end to end. The uv-managed CLI validates the controlled
-dialect, creates a styled editable DOCX by default, optionally creates an
-independent PDF, and includes a complete representative project. The Pandoc and
-TeX Live renderers, profile resources, Docker definition, tests, and Russian
-user documentation are present.
+V1 targets the editable DOCX path. The uv-managed CLI validates the controlled
+dialect, creates a styled editable DOCX, and includes a complete representative
+project. The Pandoc renderer, profile resources, Docker definition, tests, and
+Russian user documentation are present. The implemented PDF path remains an
+experimental preview until v2.
 
 ## Completed V1 Work
 
@@ -18,7 +18,7 @@ user documentation are present.
   definitions, abbreviations, bibliography, citations, appendices, and code;
 - shared global/section/auto numbering and appendix-local numbering;
 - editable DOCX styles, OMML, fields, bookmarks, and repeating table headers;
-- independent LuaLaTeX PDF with longtable continuation heads;
+- experimental LuaLaTeX PDF preview with longtable continuation heads;
 - conservative warnings, strict mode, and narrow local suppression;
 - structural tests, full example builds, and visual QA entry points;
 - pinned Docker and native macOS workflows;
@@ -32,13 +32,11 @@ user documentation are present.
 - Bibliography records use five in-source fields and first-citation order.
 - Warning suppression is a next-content-line comment with explicit codes.
 - Editable Word table continuations use validated explicit `\tablebreak`
-  segments because repeated header rows do not reevaluate fields; PDF uses
-  native `longtable` continuation heads.
+  segments because repeated header rows do not reevaluate fields.
 - Automatic object numbering switches at ten objects only when at least two
   sections contain that object type.
-- Containers fall back to Cyrillic-capable Liberation Serif with Times-compatible
-  metrics when licensed Times New Roman is not available; normative PDF
-  production still requires Times New Roman.
+- The experimental PDF preview falls back to Cyrillic-capable Liberation Serif
+  with Times-compatible metrics when licensed Times New Roman is unavailable.
 
 ## Completed DOCX Acceptance Work
 
@@ -51,6 +49,8 @@ implemented and regression-tested on 2026-09-12:
   headings use regular type, and heading numbers use non-breaking spaces;
 - ordinary body paragraphs retain the 1.25 cm indent while positioned content
   uses explicit non-indented styles;
+- title details, assignment fields, and wrapped abstract source lines use real
+  Word paragraphs rather than pervasive soft line breaks;
 - list labels use the prescribed literal hyphen or enumerator followed by U+00A0;
 - figure content, code, and continued-table labels use explicit alignments;
 - editable equation numbers use a symmetric borderless row that keeps the
@@ -67,8 +67,8 @@ refresh remains a manual release gate.
 
 ## Release Readiness Work
 
-- GitHub Actions CI validates lint, tests, the representative document, and the
-  package build without repository secrets;
+- GitHub Actions CI validates lint, tests, the representative source, the package
+  build, and construction of the Docker image without repository secrets;
 - MIT is the project license; keep third-party programs, fonts, and normative
   documents outside that grant;
 - publish packaged release artifacts;
@@ -76,6 +76,9 @@ refresh remains a manual release gate.
 
 ## Later Work
 
+- complete PDF conformance for v2, including structural contents entries, full
+  assignment metadata, bounded figure sizing, visual regression coverage, and
+  mandatory renderer tests in CI;
 - incorporate any additional bibliography STO clauses into the structured model
   when normative evidence becomes available;
 - add more SSAU title-page variants;

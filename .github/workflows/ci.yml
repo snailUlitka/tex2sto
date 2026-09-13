@@ -45,3 +45,6 @@ jobs:
 
       - name: Build distribution
         run: uv build
+
+      - name: Build Docker image
+        run: docker build --platform linux/amd64 --tag tex2sto:ci .

@@ -19,12 +19,13 @@ Python include expansion, metadata parsing, validation, and shared numbering
         |                                      v
         |                       focused python-docx OOXML patches --> DOCX
         |
-        +--> SSAU LaTeX class --> LuaLaTeX / TeX Live 2026 --> PDF
+        +--> SSAU LaTeX class --> LuaLaTeX / TeX Live 2026 --> experimental PDF
 ```
 
 The renderers share source metadata, labels, citations, validation results, and
-numbering decisions. They own output-specific layout and may paginate
-differently.
+numbering decisions. DOCX is the v1 release output. The PDF branch remains an
+experimental preview until its independent conformance work is completed for
+v2.
 
 ## Component Boundaries
 
@@ -43,20 +44,23 @@ Pandoc parses supported prose, headings, lists, tables, images, and math. The
 `ssau.lua` filter assigns profile styles and the profile `reference.docx`
 supplies A4 setup, margins, fonts, footer, and the `Tex2Sto ...` style family.
 
-Focused Python post-processing adds the title and assignment pages, abstract
-statistics, editable page fields and contents entries, bookmarks, editable
-equation rows with symmetric side columns, Russian list numbering, repeating
-table rows, and explicit continuation segments at validated `\tablebreak`
-points. Table-grid widths are
+Focused Python post-processing adds the title and assignment pages with real
+Word paragraphs for logically separate fields, abstract statistics, editable
+page fields and contents entries, bookmarks, editable equation rows with
+symmetric side columns, Russian list numbering, repeating table rows, and
+explicit continuation segments at validated `\tablebreak` points. Soft line
+breaks are reserved for structures that must remain within one paragraph, such
+as symbol explanations and the two-line appendix heading. Table-grid widths are
 balanced from visible cell content before a longtable is split. The processor
 patches Pandoc output rather than constructing the package from scratch.
 
-### PDF path
+### Experimental PDF path
 
 LuaLaTeX receives lowered LaTeX directly. `tex2sto-ssau.cls` owns A4 geometry,
 typography, structural pages, headings, lists, fixed object placement, longtable
 continuations, equations, listings, and page numbering. The PDF path never
-round-trips through DOCX or LibreOffice.
+round-trips through DOCX or LibreOffice. Its current output is not part of the
+v1 compatibility or conformance contract.
 
 ### QA-only rendering
 
@@ -112,6 +116,6 @@ the STO-permitted sequence and exclude forbidden Cyrillic letters.
 `src/tex2sto/profiles/ssau/toolchain.toml` pins Pandoc 3.11, TeX Live 2026,
 and Python 3.12. Renderer startup rejects incompatible external versions.
 `uv.lock` freezes Python dependencies. Docker installs the same pins on the
-official TeX Live `medium` multi-architecture image, locked by manifest digest;
-the representative DOCX and PDF build is the package-completeness gate. Native
-macOS uses the same runtime contract.
+official TeX Live `medium` multi-architecture image, locked by manifest digest.
+The v1 CI gate builds the image, while DOCX construction and visual inspection
+remain the release output gates. Native macOS uses the same runtime contract.
