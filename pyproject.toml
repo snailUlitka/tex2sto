@@ -1,7 +1,7 @@
 [project]
 name = "tex2sto"
-version = "0.1.0"
-description = "Compile a controlled LaTeX dialect to SSAU-compliant DOCX and PDF"
+version = "1.0.0"
+description = "Compile a controlled LaTeX dialect to SSAU-compliant DOCX"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -11,7 +11,7 @@ authors = [
 requires-python = ">=3.12"
 keywords = ["docx", "latex", "pandoc", "ssau"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
 ]

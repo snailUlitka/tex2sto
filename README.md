@@ -5,7 +5,7 @@
 Произвольный LaTeX не поддерживается: неизвестные команды и неоднозначная
 структура считаются ошибками.
 
-Проект находится на стадии `0.1.0` (alpha), не является официальным продуктом
+Текущая стабильная версия — `1.0.0`. Проект не является официальным продуктом
 Самарского университета и не заменяет проверку документа по действующему СТО.
 
 ## Быстрый старт
@@ -26,8 +26,8 @@ uv run tex2sto build examples/master-thesis/main.tex -o build/example
 Воспроизводимый вариант через Docker:
 
 ```sh
-docker build -t tex2sto:0.1.0 .
-docker run --rm -v "$PWD:/work" tex2sto:0.1.0 \
+docker build -t tex2sto:1.0.0 .
+docker run --rm -v "$PWD:/work" tex2sto:1.0.0 \
   build examples/master-thesis/main.tex -o build/example
 ```
 
