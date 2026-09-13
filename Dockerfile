@@ -33,7 +33,7 @@ RUN case "${TARGETARCH}" in \
 COPY --from=uv /uv /uvx /usr/local/bin/
 
 WORKDIR /app
-COPY .python-version pyproject.toml uv.lock README.md ./
+COPY .python-version pyproject.toml uv.lock README.md LICENSE ./
 RUN uv python install 3.12.11 \
     && uv sync --frozen --no-dev --no-install-project \
     && fc-match --format='%{family}\n' 'Liberation Serif' | grep --fixed-strings "Liberation Serif" \
