@@ -46,6 +46,12 @@ PDF construction checks. Tests requiring an external renderer skip when that
 renderer is absent. Mandatory PDF renderer coverage in CI is deferred to v2;
 the v1 CI release gate must build the Docker image successfully.
 
+MCP tests check tool and resource discovery, the full dialect resource against
+`docs/dialect.md`, stdio startup, a real DOCX build with numbering overrides,
+warning delivery, strict validation failure, and absence of output after a
+validation error. Distribution inspection must confirm the dialect resource is
+present in the wheel.
+
 ## Structural Output Gates
 
 DOCX tests inspect selected OOXML rather than snapshotting the binary:

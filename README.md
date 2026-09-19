@@ -35,6 +35,7 @@ docker run --rm -v "$PWD:/work" tex2sto:1.0.0 \
 
 - [установка](docs/installation.md);
 - [командная строка](docs/cli.md);
+- [MCP-сервер для агентов](docs/mcp.md);
 - [поддерживаемый диалект](docs/dialect.md);
 - [разбор полного примера](docs/example.md).
 

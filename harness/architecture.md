@@ -32,6 +32,11 @@ v2.
 ### Python application
 
 `src/tex2sto/cli.py` owns `check` and `build`, exit codes, and CLI options.
+`src/tex2sto/mcp_server.py` exposes a local stdio MCP server with a short dialect
+guide, a full dialect resource, and a DOCX build tool. The build tool reuses the
+same project loader, validator, `BuildOptions`, and renderer orchestration as the
+CLI. The packaged dialect resource is kept identical to `docs/dialect.md` by a
+test; MCP errors carry the existing diagnostic codes.
 `dialect/` performs balanced-argument recognition and safe local `\input`
 expansion without attempting to parse arbitrary LaTeX. `model/` stores the
 document and builds deterministic object and citation indices. `validation/`
@@ -73,6 +78,8 @@ manual release gate for page and contents fields.
 ```text
 src/tex2sto/
   cli.py
+  mcp_server.py
+  resources/dialect.md
   dialect/
   model/
   validation/
