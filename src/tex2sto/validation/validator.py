@@ -23,6 +23,7 @@ from tex2sto.validation.prose import check_prose
 METADATA_COMMANDS = set(SINGLE_COMMANDS) | set(BIBLIOGRAPHY_FIELDS) | {
     "consultant",
     "keywords",
+    "labtitle",
     "source",
     "supervisor",
 }
@@ -273,6 +274,8 @@ def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> No
 
 
 def _validate_metadata(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    if project.metadata.lab_title is not None:
+        return
     for attribute, command in REQUIRED_METADATA.items():
         if not getattr(project.metadata, attribute):
             diagnostics.error("T2S-E201", f"required metadata is missing: {command}")
@@ -303,17 +306,16 @@ def _validate_metadata(project: SourceProject, diagnostics: DiagnosticBag) -> No
 
 def _validate_structure(project: SourceProject, diagnostics: DiagnosticBag) -> None:
     body = project.body
-    required = ("introduction", "section", "conclusion")
+    ordered = ("introduction", "section", "conclusion")
+    required = ("section",) if project.metadata.lab_title is not None else ordered
     positions: dict[str, int] = {}
-    for name in required:
+    for name in ordered:
         calls = find_command_calls(body, name, 0 if name != "section" else 1)
-        if not calls:
+        if not calls and name in required:
             diagnostics.error("T2S-E301", f"required document structure is missing: \\{name}")
-        else:
+        elif calls:
             positions[name] = calls[0].start
-    if len(positions) == len(required) and not (
-        positions["introduction"] < positions["section"] < positions["conclusion"]
-    ):
+    if list(positions.values()) != sorted(positions.values()):
         diagnostics.error(
             "T2S-E302",
             "introduction, main sections, and conclusion are out of order",

@@ -178,6 +178,15 @@ def main() -> None:
         alignment=WD_PARAGRAPH_ALIGNMENT.CENTER,
         before=72,
     )
+    for name, alignment in (
+        ("Tex2Sto Lab Institution", WD_PARAGRAPH_ALIGNMENT.CENTER),
+        ("Tex2Sto Lab Center", WD_PARAGRAPH_ALIGNMENT.CENTER),
+        ("Tex2Sto Lab Signature", WD_PARAGRAPH_ALIGNMENT.RIGHT),
+        ("Tex2Sto Lab City", WD_PARAGRAPH_ALIGNMENT.CENTER),
+    ):
+        style = _style(document, name, first_line=False, alignment=alignment)
+        style.paragraph_format.keep_with_next = name != "Tex2Sto Lab City"
+        style.paragraph_format.keep_together = True
 
     for level in range(1, 5):
         heading = document.styles[f"Heading {level}"]

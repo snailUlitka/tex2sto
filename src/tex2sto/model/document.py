@@ -33,6 +33,7 @@ class BibliographyItem:
 
 @dataclass(slots=True)
 class DocumentMetadata:
+    lab_title: LabTitle | None = None
     title: str = ""
     author: str = ""
     student_group: str = ""
@@ -56,6 +57,20 @@ class DocumentMetadata:
     assignment_questions: str = ""
     assignment_issued: str = ""
     assignment_due: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class LabTitle:
+    number: str
+    course: str
+    author: str
+    group: str
+    reviewer: str
+    year: str
+    variant: str = ""
+    city: str = "Самара"
+    author_label: str = "Выполнил"
+    reviewer_label: str = "Проверил"
 
 
 @dataclass(slots=True)

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from tex2sto.dialect.syntax import find_command_calls
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
+from tex2sto.profiles.ssau.lab_title import latex_title_page
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
 from tex2sto.transform import PAGE_BREAK_MARKER, renderer_body
 
@@ -35,6 +36,8 @@ def _escape(value: str) -> str:
 
 def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
     metadata = project.metadata
+    if metadata.lab_title is not None:
+        return latex_title_page(metadata.lab_title)
     counts = {kind: sum(item.kind is kind for item in index.objects) for kind in ObjectKind}
     appendices = len(find_command_calls(project.body, "appendix", 2))
     keywords = _escape(", ".join(keyword.upper() for keyword in metadata.keywords))

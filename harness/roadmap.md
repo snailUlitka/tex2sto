@@ -14,6 +14,8 @@ experimental preview until v2.
 - safe multi-file loading and strict unknown-syntax rejection;
 - metadata, title, assignment, abstract, contents, main structure, and page
   numbering;
+- one-command laboratory cover with named parameters, optional variant and
+  participant labels, and laboratory-specific front matter;
 - paragraphs, nested STO lists, figures, tables, long tables, equations,
   definitions, abbreviations, bibliography, citations, appendices, and code;
 - shared global/section/auto numbering and appendix-local numbering;
@@ -28,6 +30,8 @@ experimental preview until v2.
 
 - The master-level title page and two assignment variants use the reviewed
   template as supporting evidence and the STO checklist as authority.
+- The basic laboratory cover uses the user-supplied reports as supporting
+  evidence; `\labtitle` selects its single-author, single-reviewer baseline.
 - Pandoc 3.11, TeX Live 2026, Python 3.12.11, and uv 0.12.x are pinned.
 - Bibliography records use five in-source fields and first-citation order.
 - Warning suppression is a next-content-line comment with explicit codes.
@@ -81,7 +85,7 @@ refresh remains a manual release gate.
   mandatory renderer tests in CI;
 - incorporate any additional bibliography STO clauses into the structured model
   when normative evidence becomes available;
-- add more SSAU title-page variants;
+- add SSAU title-page variants beyond the master and basic laboratory covers;
 - add table notes and other structures only with normative fixtures;
 - study a second university standard and extract proven profile variation
   points;

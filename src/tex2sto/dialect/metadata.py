@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from tex2sto.dialect.lab_title import parse_lab_title
 from tex2sto.dialect.syntax import find_command_calls, find_environment, replace_spans
 from tex2sto.errors import SourceError
 from tex2sto.model import BibliographyItem, Consultant, DocumentMetadata
@@ -89,6 +90,19 @@ def parse_project_source(
     _, _, body = document_envs[0]
 
     metadata = DocumentMetadata()
+    lab_titles = find_command_calls(source, "labtitle", 1)
+    if len(lab_titles) > 1:
+        raise SourceError("metadata command \\labtitle may appear only once")
+    if lab_titles:
+        call = lab_titles[0]
+        if not document_classes[0].end <= call.start < call.end <= document_envs[0][0]:
+            raise SourceError("\\labtitle must appear after documentclass and before document")
+        metadata.lab_title = parse_lab_title(call.args[0])
+        for command in set(SINGLE_COMMANDS) | {"supervisor", "consultant", "keywords"}:
+            if find_command_calls(source, command, 0):
+                raise SourceError(f"\\labtitle cannot be combined with \\{command}")
+        if find_environment(source, "abstract"):
+            raise SourceError("\\labtitle cannot be combined with an abstract")
     removals: list[tuple[int, int, str]] = []
     for command, (attribute, arity) in SINGLE_COMMANDS.items():
         args, spans = _one(source, command, arity)

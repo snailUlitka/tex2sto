@@ -43,6 +43,13 @@ document and builds deterministic object and citation indices. `validation/`
 enforces the accepted syntax, metadata, structure, references, and conservative
 prose warnings. `transform.py` lowers semantic commands into renderer input.
 
+`\labtitle` is a single preamble declaration with a strict, balanced
+`key={value}` grammar and plain-text values. It produces a separate `LabTitle`
+model instead of overloading thesis metadata. The presence of that model
+selects laboratory structural validation and front matter in both renderers.
+`profiles/ssau/lab_title.py` owns the supplied laboratory cover's wording and
+layout; common dialect code owns field parsing, multiplicity, and placement.
+
 ### DOCX path
 
 Pandoc parses supported prose, headings, lists, tables, images, and math. The
@@ -58,6 +65,14 @@ breaks are reserved for structures that must remain within one paragraph, such
 as symbol explanations and the two-line appendix heading. Table-grid widths are
 balanced from visible cell content before a longtable is split. The processor
 patches Pandoc output rather than constructing the package from scratch.
+
+The laboratory cover uses dedicated `Tex2Sto Lab ...` paragraph styles and
+separate editable paragraphs for each participant field. Its city/year lives
+in the first-page footer so wrapped names and course text do not move it.
+The ordinary footer retains continuous page numbering from the second page.
+A single break before the first body paragraph avoids an empty page between
+the laboratory cover and a leading structural heading. Laboratory front matter
+omits the thesis assignment, abstract, and contents.
 
 ### Experimental PDF path
 

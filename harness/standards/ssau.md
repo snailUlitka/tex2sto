@@ -24,6 +24,14 @@ and a non-master title page, so it must not be copied wholesale.
 
 ## Page and Body Text
 
+The user also requested the basic laboratory cover demonstrated in local
+report samples. It uses the same page geometry and explicit editable Word
+styles, while the sample-specific heading and participant layout live in the
+SSAU profile. This is a supported template baseline, not a claim that every
+department accepts that laboratory cover. Laboratory front matter omits the
+thesis assignment, abstract, and contents; introduction and conclusion are
+optional. These user-directed scope choices do not change the body rules below.
+
 Derived from clauses 3.1-3.4 and confirmed project choices:
 
 - A4, portrait, one-sided layout;

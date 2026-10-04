@@ -17,6 +17,7 @@ from docx.shared import Mm, RGBColor
 
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
+from tex2sto.profiles.ssau.lab_title import docx_title_page, report_name
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
@@ -474,17 +475,32 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
     _format_tables(document, project, index)
     _format_equations(document, index)
     toc_entries = _toc_entries(document)
+    lab_title = project.metadata.lab_title
+    if lab_title is not None:
+        # A semantic heading can begin with a break marker. The cover already
+        # has its own page, so use a single break before the first body paragraph.
+        while document.paragraphs:
+            first = document.paragraphs[0]
+            if first.text.strip() or not first._p.xpath('.//w:br[@w:type="page"]'):
+                break
+            document.element.body.remove(first._p)
+        if document.paragraphs:
+            document.paragraphs[0].paragraph_format.page_break_before = True
     anchor = document.element.body[0]
-    elements = [
-        *_title_page(document, project),
-        *_assignment_pages(document, project),
-        *_abstract_and_toc(document, project, index, toc_entries),
-    ]
+    elements = (
+        docx_title_page(document, lab_title)
+        if lab_title is not None
+        else [
+            *_title_page(document, project),
+            *_assignment_pages(document, project),
+            *_abstract_and_toc(document, project, index, toc_entries),
+        ]
+    )
     for element in elements:
         _move_before(element, anchor)
     set_update_fields(document)
-    document.core_properties.title = project.metadata.title
-    document.core_properties.author = project.metadata.author
+    document.core_properties.title = report_name(lab_title) if lab_title else project.metadata.title
+    document.core_properties.author = lab_title.author if lab_title else project.metadata.author
     document.save(path)
 
 

@@ -34,7 +34,9 @@ Run from the repository root:
 uv run ruff check .
 uv run pytest
 uv run tex2sto check examples/master-thesis/main.tex --strict
+uv run tex2sto check examples/lab-report/main.tex --strict
 uv run tex2sto build examples/master-thesis/main.tex -o build/example
+uv run tex2sto build examples/lab-report/main.tex -o build/lab-report
 uv build
 docker build --platform linux/amd64 -t tex2sto:ci .
 git diff --check
@@ -51,6 +53,15 @@ MCP tests check tool and resource discovery, the full dialect resource against
 warning delivery, strict validation failure, and absence of output after a
 validation error. Distribution inspection must confirm the dialect resource is
 present in the wheel.
+
+Laboratory fixtures cover the required and optional `\labtitle` fields,
+comments and escaped literal text, unknown/duplicate/empty/malformed values,
+placement, duplicate declarations, mixed thesis metadata, and optional
+introduction/conclusion ordering. DOCX checks cover covers with and without
+a variant, editable participant paragraphs, the city/year first-page footer,
+the ordinary page-number footer, and absence of thesis front matter and extra
+leading page breaks. The PDF lowering must escape normalized plain-text fields
+and select the laboratory cover without thesis front matter.
 
 ## Structural Output Gates
 
@@ -78,6 +89,9 @@ After DOCX renderer changes, render DOCX with the workspace `render_docx.py`
 helper. Inspect all pages of the representative example, with special attention
 to title and assignment pages, contents, section page breaks, float order,
 equations, split tables, bibliography, and appendices.
+Also inspect both pages of the laboratory example and a cover without a
+variant, checking course/name wrapping, the bottom city/year, and the first
+body page's number. Long-field examples must not collide with the footer.
 
 Before claiming a release compatible with Word, open the representative DOCX
 in a current Microsoft Word for macOS build, update all fields, and verify

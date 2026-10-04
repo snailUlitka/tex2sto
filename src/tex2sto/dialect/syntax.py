@@ -79,8 +79,7 @@ def find_command_calls(source: str, name: str, arity: int) -> list[CommandCall]:
             for _ in range(arity):
                 cursor = _skip_space(masked, cursor)
                 _, end = _read_group(masked, cursor, "{", "}")
-                value, _ = _read_group(source, cursor, "{", "}")
-                args.append(value)
+                args.append(source[cursor + 1 : end - 1])
                 cursor = end
         except SourceError as error:
             line = line_number(source, match.start())
@@ -95,6 +94,28 @@ def find_command_calls(source: str, name: str, arity: int) -> list[CommandCall]:
             )
         )
     return calls
+
+
+def parse_named_arguments(source: str) -> dict[str, str]:
+    """Read a comma-separated key={value} list with balanced value groups."""
+    source = mask_comments(source)
+    values: dict[str, str] = {}
+    cursor = _skip_space(source, 0)
+    while cursor < len(source):
+        key = re.match(r"([a-z][a-z-]*)\s*=\s*", source[cursor:])
+        if key is None:
+            raise SourceError("expected a named argument in the form key={value}")
+        name = key.group(1)
+        if name in values:
+            raise SourceError(f"duplicate named argument: {name}")
+        value, cursor = _read_group(source, cursor + key.end(), "{", "}")
+        values[name] = value
+        cursor = _skip_space(source, cursor)
+        if cursor < len(source):
+            if source[cursor] != ",":
+                raise SourceError(f"expected a comma after named argument: {name}")
+            cursor = _skip_space(source, cursor + 1)
+    return values
 
 
 def find_environment(source: str, name: str) -> list[tuple[int, int, str]]:

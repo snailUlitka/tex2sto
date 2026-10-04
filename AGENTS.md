@@ -76,7 +76,9 @@ Run the checks relevant to the change:
 uv run ruff check .
 uv run pytest
 uv run tex2sto check examples/master-thesis/main.tex --strict
+uv run tex2sto check examples/lab-report/main.tex --strict
 uv run tex2sto build examples/master-thesis/main.tex -o build/example
+uv run tex2sto build examples/lab-report/main.tex -o build/lab-report
 uv build
 docker build --platform linux/amd64 -t tex2sto:ci .
 git diff --check

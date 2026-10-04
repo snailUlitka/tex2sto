@@ -43,6 +43,9 @@ jobs:
       - name: Check the representative document
         run: uv run tex2sto check examples/master-thesis/main.tex --strict
 
+      - name: Check the laboratory report
+        run: uv run tex2sto check examples/lab-report/main.tex --strict
+
       - name: Build distribution
         run: uv build
 

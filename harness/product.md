@@ -19,8 +19,8 @@ user-facing, Russian-language products, not internal implementation notes.
 
 ## V1 Deliverable
 
-The implemented end-to-end deliverable is a packaged CLI that accepts one
-master-level SSAU document written in the supported dialect and produces a
+The implemented end-to-end deliverable is a packaged CLI that accepts a
+master-level SSAU document or a basic laboratory report in the supported dialect and produces a
 styled, editable DOCX. The existing `--pdf` path is retained as an experimental
 preview outside the v1 compatibility contract. Conforming PDF output is a v2
 deliverable.
@@ -30,7 +30,7 @@ deliverable.
 V1 supports these constructs, with the author selecting which optional
 structural elements are present:
 
-- a master-level title page;
+- a master-level title page or the basic laboratory report cover;
 - an assignment page;
 - an abstract, including document statistics and keywords;
 - a table of contents;
@@ -110,7 +110,7 @@ introducing a `.bib` dependency.
 - conforming or compatibility-stable PDF output before v2;
 - page-identical DOCX and PDF output;
 - a general declarative schema for arbitrary universities;
-- title pages other than the initial master-level variant;
+- title pages beyond the master-level and basic laboratory variants;
 - landscape pages;
 - SVG or TikZ rendering;
 - numbered algorithm environments;
@@ -119,3 +119,21 @@ introducing a `.bib` dependency.
 The initial SSAU implementation is intentionally hardcoded behind a profile
 boundary. A general profile format is a later design problem informed by the
 working implementation, not a prerequisite for v1.
+
+## Laboratory Report Baseline
+
+The user-supplied reports in `.tmp/reports` establish one basic laboratory
+cover: university heading, report number and course, optional variant, author
+and group, reviewer, city, and year. These local samples contain inconsistent
+formatting and are supporting evidence, not reusable production templates.
+No source report or personal data is copied into the tracked example.
+
+One preamble command, `\labtitle{key={value}, ...}`, selects this cover and the
+laboratory structure. It supports one author and one reviewer, with explicit
+optional labels rather than inferred gender. The city defaults to Samara;
+the year is explicit for reproducible builds. Laboratory reports require at
+least one section. Introduction and conclusion are optional, while thesis
+assignment pages, abstract, keywords, and contents are absent. Mixed thesis
+metadata and `\labtitle` declarations are errors rather than silent overrides.
+The existing body layout, numbering, object, bibliography, and appendix rules
+remain in effect. Further laboratory cover variants remain deferred.
