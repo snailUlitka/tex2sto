@@ -8,7 +8,7 @@ ARG PANDOC_VERSION=3.11
 USER root
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-      ca-certificates curl fontconfig fonts-liberation python3 \
+      ca-certificates curl fontconfig fonts-liberation poppler-utils python3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN case "${TARGETARCH}" in \

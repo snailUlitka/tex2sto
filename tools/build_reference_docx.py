@@ -96,7 +96,7 @@ def main() -> None:
         style = _style(
             document,
             f"Tex2Sto Heading {level}",
-            first_line=False,
+            first_line=True,
             before=12,
             after=6,
         )
@@ -115,7 +115,13 @@ def main() -> None:
         ("Tex2Sto Title Details", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
     )
     for name, size, alignment in compact_styles:
-        _style(document, name, size=size, first_line=False, alignment=alignment)
+        _style(
+            document,
+            name,
+            size=size,
+            first_line=name == "Tex2Sto Abstract Keywords",
+            alignment=alignment,
+        )
     continuation_style = _style(
         document,
         "Tex2Sto Table Continuation",
@@ -138,6 +144,8 @@ def main() -> None:
         Mm(165),
         WD_TAB_ALIGNMENT.RIGHT,
     )
+    equation_style.paragraph_format.space_before = Pt(21)
+    equation_style.paragraph_format.space_after = Pt(21)
     for level in range(1, 5):
         toc_style = _style(
             document,
@@ -191,6 +199,15 @@ def main() -> None:
     for level in range(1, 5):
         heading = document.styles[f"Heading {level}"]
         _font(heading, 14)
+
+    for name, size, alignment in (
+        ("Tex2Sto Practice Institution", 12, WD_PARAGRAPH_ALIGNMENT.CENTER),
+        ("Tex2Sto Practice Center", 14, WD_PARAGRAPH_ALIGNMENT.CENTER),
+        ("Tex2Sto Practice Details", 14, WD_PARAGRAPH_ALIGNMENT.LEFT),
+    ):
+        style = _style(document, name, size=size, first_line=False, alignment=alignment)
+        if name.endswith("Institution"):
+            style.paragraph_format.line_spacing = 1.0
 
     document.styles["Tex2Sto Table Caption"].paragraph_format.keep_with_next = True
 

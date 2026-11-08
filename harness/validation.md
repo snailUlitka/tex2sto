@@ -45,8 +45,8 @@ git diff --check
 The pytest suite includes positive and negative dialect fixtures, numbering and
 transformation checks, real DOCX construction, OOXML assertions, and preliminary
 PDF construction checks. Tests requiring an external renderer skip when that
-renderer is absent. Mandatory PDF renderer coverage in CI is deferred to v2;
-the v1 CI release gate must build the Docker image successfully.
+renderer is absent. Mandatory PDF renderer coverage in CI is deferred beyond release 2.0;
+the CI release gate must build the Docker image successfully.
 
 MCP tests check tool and resource discovery, the full dialect resource against
 `docs/dialect.md`, stdio startup, a real DOCX build with numbering overrides,
@@ -105,4 +105,21 @@ Pandoc, TeX Live, Python, uv, and Python dependencies are pinned. A v1 dependenc
 upgrade must update version records and lock material, pass every automated
 command, regenerate and inspect the DOCX, receive Word field verification when
 DOCX changes, and record intentional output differences. PDF visual and CI
-upgrade gates become mandatory in v2.
+upgrade gates remain deferred beyond version 2.0.
+
+## Version 2.0 additions
+
+Run strict checks and builds for `examples/practice-report/main.tex` in addition
+to the established examples. Configuration fixtures cover empty/absent files,
+unknown keys, invalid types/ranges/dates, override precedence, explicit files,
+and terminology placement. Practice fixtures cover missing/mixed/misplaced
+metadata, required assignment rows, editable cover/competency output, repeated
+headers, styles, and page footers. Check numbered equations following unnumbered
+ones, immediate symbol explanations, generated punctuation, list geometry,
+table spacing, and continuation borders. Check page limits on actual rendered
+PDFs, both boundaries, absent limits, failure to parse a PDF, and strict mode.
+MCP must share settings, expose both dialect and configuration references, and
+report post-render warnings through `check_pages`.
+
+The release remains DOCX-focused. Existing PDF preview tests are retained; the
+previous roadmap's v2 PDF conformance gate is deferred beyond release 2.0.

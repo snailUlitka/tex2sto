@@ -1,4 +1,4 @@
-"""Strict validation for the documented tex2sto v1 dialect."""
+"""Strict validation for the documented tex2sto dialect."""
 
 from __future__ import annotations
 
@@ -20,13 +20,19 @@ from tex2sto.model import SourceProject
 from tex2sto.model.numbering import APPENDIX_LETTERS
 from tex2sto.validation.prose import check_prose
 
-METADATA_COMMANDS = set(SINGLE_COMMANDS) | set(BIBLIOGRAPHY_FIELDS) | {
-    "consultant",
-    "keywords",
-    "labtitle",
-    "source",
-    "supervisor",
-}
+METADATA_COMMANDS = (
+    set(SINGLE_COMMANDS)
+    | set(BIBLIOGRAPHY_FIELDS)
+    | {
+        "consultant",
+        "keywords",
+        "labtitle",
+        "practicetitle",
+        "practiceassignment",
+        "source",
+        "supervisor",
+    }
+)
 STRUCTURE_COMMANDS = {
     "introduction",
     "conclusion",
@@ -277,8 +283,21 @@ def _validate_metadata(project: SourceProject, diagnostics: DiagnosticBag) -> No
     if project.metadata.lab_title is not None:
         return
     for attribute, command in REQUIRED_METADATA.items():
+        if attribute == "norm_controller" and project.metadata.practice_title is not None:
+            continue
         if not getattr(project.metadata, attribute):
             diagnostics.error("T2S-E201", f"required metadata is missing: {command}")
+    if project.metadata.practice_title is not None:
+        if not project.metadata.practice_assignments:
+            diagnostics.error(
+                "T2S-E206", "practice reports require at least one \\practiceassignment row"
+            )
+        if project.metadata.assignment_variant != "none":
+            diagnostics.error(
+                "T2S-E207",
+                "practice reports use their own assignment; "
+                "do not select a thesis assignment variant",
+            )
     if project.metadata.assignment_variant not in {"none", "1", "2"}:
         diagnostics.error("T2S-E202", "assignment variant must be none, 1, or 2")
     if project.metadata.assignment_variant != "none":
@@ -345,14 +364,28 @@ def _validate_structure(project: SourceProject, diagnostics: DiagnosticBag) -> N
         if len(appendices) > len(APPENDIX_LETTERS):
             diagnostics.error(
                 "T2S-E306",
-                f"v1 supports at most {len(APPENDIX_LETTERS)} single-letter appendices",
+                f"the dialect supports at most {len(APPENDIX_LETTERS)} single-letter appendices",
             )
     introduction = find_command_calls(body, "introduction", 0)
-    if introduction:
-        for command in ("definitions", "abbreviations"):
-            calls = find_command_calls(body, command, 0)
-            if calls and calls[0].start > introduction[0].start:
-                diagnostics.error("T2S-E307", f"\\{command} must precede the introduction")
+    for command in ("definitions", "abbreviations"):
+        calls = find_command_calls(body, command, 0)
+        if not calls:
+            continue
+        if project.settings.terminology_position == "before-introduction":
+            sections = find_command_calls(body, "section", 1)
+            boundary = (
+                introduction[0].start if introduction else (sections[0].start if sections else 0)
+            )
+            valid = calls[0].start < boundary
+        else:
+            end = min([call.start for call in [*bibliography_marker, *appendices]] or [len(body)])
+            valid = bool(conclusion) and conclusion[0].start < calls[0].start < end
+        if not valid:
+            diagnostics.error(
+                "T2S-E307",
+                f"\\{command} conflicts with configured "
+                f"terminology position: {project.settings.terminology_position}",
+            )
     for command in ("definitions", "abbreviations"):
         if len(find_command_calls(body, command, 0)) > 1:
             diagnostics.error("T2S-E310", f"\\{command} may appear only once")
@@ -524,19 +557,48 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
         diagnostics.error("T2S-E418", "appendices must follow first-reference order")
 
     for environment in ("equation", "align"):
-        for _, _, content in find_environment(source, environment):
+        for start, _, content in find_environment(source, environment):
             label = _environment_label(content)
             if label is None or not label.startswith("eq:"):
                 diagnostics.error("T2S-E411", f"every {environment} requires an eq: label")
             elif label not in references:
                 diagnostics.error("T2S-E412", f"every {environment} must be referenced: {label}")
+            elif first_references[label] >= start:
+                diagnostics.error(
+                    "T2S-E428", f"{environment} must follow its first reference: {label}"
+                )
 
     numbered_equations = sorted(
         (start, end)
-        for environment in ("equation", "align")
+        for environment in ("equation", "align", "equation*", "align*")
         for start, end, _ in find_environment(source, environment)
     )
+    for environment in ("equation*", "align*"):
+        for _, _, content in find_environment(source, environment):
+            if find_command_calls(content, "label", 1):
+                diagnostics.error(
+                    "T2S-E429",
+                    "unnumbered equations must not declare labels; "
+                    "use equation or align for referenced equations",
+                )
     symbol_environments = find_environment(source, "symbols")
+    math_source = _mask_verbatim(source)
+    math_fragments = [
+        (start, content)
+        for environment in ("equation", "equation*", "align", "align*")
+        for start, _, content in find_environment(math_source, environment)
+    ]
+    math_fragments.extend(
+        (match.start(), match.group()) for match in re.finditer(r"\$[^$\n]+\$", math_source)
+    )
+    for start, content in math_fragments:
+        if re.search(r"[*•]", mask_comments(content)):
+            diagnostics.warning(
+                "T2S-W401",
+                "use a mathematical multiplication sign instead of an asterisk or bullet",
+                path=project.master,
+                line=line_number(source, start),
+            )
     for start, _, content in symbol_environments:
         symbols = find_command_calls(content, "symbol", 2)
         if not symbols:
@@ -552,11 +614,10 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
         if not preceding or mask_comments(source[max(preceding) : start]).strip():
             diagnostics.error(
                 "T2S-E426",
-                "symbols must immediately follow a numbered equation or align environment",
+                "symbols must immediately follow an equation or align environment",
             )
     nested_symbols = sum(
-        len(find_command_calls(content, "symbol", 2))
-        for _, _, content in symbol_environments
+        len(find_command_calls(content, "symbol", 2)) for _, _, content in symbol_environments
     )
     if len(find_command_calls(source, "symbol", 2)) != nested_symbols:
         diagnostics.error("T2S-E427", "\\symbol may appear only inside symbols")
@@ -569,7 +630,7 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
             diagnostics.error("T2S-E408", f"image path escapes the project root: {call.args[0]}")
             continue
         if asset.suffix.lower() in {".svg", ".svgz"}:
-            diagnostics.error("T2S-E409", "SVG images are not supported in v1")
+            diagnostics.error("T2S-E409", "SVG images are not supported")
         elif asset.suffix.lower() not in {".png", ".jpg", ".jpeg"}:
             diagnostics.error(
                 "T2S-E420",
@@ -621,9 +682,7 @@ def _validate_bibliography(project: SourceProject, diagnostics: DiagnosticBag) -
             "web": ("url", "access_date"),
         }
         missing = [
-            field
-            for field in required_fields.get(item.kind, ())
-            if not getattr(item, field)
+            field for field in required_fields.get(item.kind, ()) if not getattr(item, field)
         ]
         if missing:
             diagnostics.error(
@@ -648,5 +707,10 @@ def validate_project(project: SourceProject) -> DiagnosticBag:
     _validate_structure(project, diagnostics)
     _validate_objects(project, diagnostics)
     _validate_bibliography(project, diagnostics)
-    check_prose(project.body, path=project.master, diagnostics=diagnostics)
+    check_prose(
+        project.body,
+        path=project.master,
+        diagnostics=diagnostics,
+        allow_em_dash=project.settings.allow_em_dash,
+    )
     return diagnostics

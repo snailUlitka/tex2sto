@@ -114,7 +114,7 @@ Derived from clauses 6.1.1-6.1.10:
 - use global or section-local Arabic numbering according to the document's
   selected numbering policy;
 - center explanatory text and the caption below the figure;
-- format the caption as `Рисунок N — Название` without a trailing period;
+- format the caption as `Рисунок N - Название` without a trailing period;
 - use single spacing for a multi-line caption and prevent word hyphenation;
 - use appendix-local identifiers such as `Рисунок А.3`.
 
@@ -124,7 +124,7 @@ Derived from clauses 6.2.1-6.2.14:
 
 - place a table after its first mention or on the next page;
 - require at least one document reference to every table;
-- place `Таблица N — Название` above the table, left aligned, without a first-line
+- place `Таблица N - Название` above the table, left aligned, without a first-line
   indent or trailing period;
 - use single spacing when the title spans multiple lines;
 - use global or section-local numbering according to the selected policy;
@@ -170,7 +170,7 @@ Derived from clauses 5.9.1-5.9.2 and 6.4.1-6.4.3:
 - keep source records as structured tagged data inside the `.tex` project;
 - cover author and contributor groups, medium, container, publication details,
   issue, page range or extent, URL, and access date;
-- normalize Russian guillemets, spaced em-dash separators, numeric en-dash
+- normalize Russian guillemets, configured separators (hyphens by default), numeric en-dash
   ranges, and compact responsibility/container slash separators.
 
 ## Appendices and Listings
@@ -209,3 +209,22 @@ Potentially automatable checks include:
 Use warnings when context can make the pattern legitimate. Use errors only when
 the dialect or normalized document model proves the violation deterministically.
 Do not add NLP-based terminology or writing-quality enforcement in v1.
+
+## User-confirmed local variation in version 2.0
+
+The practice template is supporting evidence, not a replacement for the STO.
+The user explicitly selected configurable terminology placement, table spacing,
+list numbering, and punctuation. The default terminology position and 1.5 table
+spacing preserve existing behavior. Numbered headings and abstract keywords use
+1.25 cm first-line indents. Em dashes may be permitted for local requirements;
+programmatic global character replacement must not corrupt math, URLs, or code.
+Referenced equations must follow their first mention. Both numbered and
+unnumbered equations may have immediate symbol explanations, separated by
+semicolons and ending in a period. Interrupted longtable parts omit their
+closing bottom border.
+
+Practice-specific cover fields and competency matrices are structured metadata.
+Required competencies and actual attainment are authored and reviewed by humans.
+Post-render page warnings count the supplied PDF scope, with no default bounds.
+Full Word TOC refresh, exclusion of uncited sources, citation locators, landscape
+pages, and source-age checks are not requirements for this release.

@@ -54,8 +54,8 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert 'w:val="Tex2StoSymbols"' in document
         assert 'w:val="Tex2StoCode"' in document
         assert "где" in document
-        assert "— доля пройденных проверок," in document
-        assert "— общее число проверок." in document
+        assert "- доля пройденных проверок;" in document
+        assert "- общее число проверок." in document
         assert re.search(
             r"ПРИЛОЖЕНИЕ А</w:t>.*?<w:br/>.*?Пример программного кода</w:t>",
             document,

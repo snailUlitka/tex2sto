@@ -17,17 +17,17 @@ The initial user is a Samara University student who prefers LaTeX authoring but
 must submit a Word document. The dialect and CLI documentation are therefore
 user-facing, Russian-language products, not internal implementation notes.
 
-## V1 Deliverable
+## Supported Deliverable
 
 The implemented end-to-end deliverable is a packaged CLI that accepts a
-master-level SSAU document or a basic laboratory report in the supported dialect and produces a
+master-level SSAU document, a practice report, or a basic laboratory report in the supported dialect and produces a
 styled, editable DOCX. The existing `--pdf` path is retained as an experimental
-preview outside the v1 compatibility contract. Conforming PDF output is a v2
-deliverable.
+preview outside the DOCX compatibility contract. Conforming PDF output is
+deferred beyond version 2.0.
 
-## V1 Document Scope
+## Document Scope
 
-V1 supports these constructs, with the author selecting which optional
+The application supports these constructs, with the author selecting which optional
 structural elements are present:
 
 - a master-level title page or the basic laboratory report cover;
@@ -52,8 +52,8 @@ introducing a `.bib` dependency.
 
 ## Output Contract
 
-- DOCX is the supported v1 output.
-- `--pdf` is an opt-in experimental preview and carries no v1 conformance or
+- DOCX is the supported output.
+- `--pdf` is an opt-in experimental preview and carries no DOCX conformance or
   compatibility guarantee.
 - `-o` selects the output directory.
 - DOCX remains editable. Native Word content is preferred over rendered images,
@@ -101,13 +101,13 @@ introducing a `.bib` dependency.
   a full type checker.
 - Pandoc and TeX Live versions are pinned. Pandoc upgrades are v1 maintenance
   operations guarded by the full DOCX regression gates. TeX Live and PDF
-  regression coverage become release gates in v2.
+  regression coverage are deferred beyond version 2.0.
 
-## Explicit Non-goals for V1
+## Explicit Non-goals
 
 - accepting or rendering arbitrary LaTeX;
 - semantic or NLP review of academic prose;
-- conforming or compatibility-stable PDF output before v2;
+- conforming or compatibility-stable PDF output in version 2.0;
 - page-identical DOCX and PDF output;
 - a general declarative schema for arbitrary universities;
 - title pages beyond the master-level and basic laboratory variants;
@@ -137,3 +137,21 @@ assignment pages, abstract, keywords, and contents are absent. Mixed thesis
 metadata and `\labtitle` declarations are errors rather than silent overrides.
 The existing body layout, numbering, object, bibliography, and appendix rules
 remain in effect. Further laboratory cover variants remain deferred.
+
+## Version 2.0 decisions
+
+The major release adds local SSAU project configuration and the practice-report
+variant. It does not promote the experimental PDF path to a conformance promise.
+The earlier v2 PDF target is rescheduled beyond 2.0 by the user's confirmed scope.
+All previously supported document constructs remain available.
+
+- `tex2sto.toml` may be empty or absent; document metadata stays in `.tex`.
+- Optional terminology placement and table spacing are project choices.
+- First-line indents for numbered headings and keywords are baseline rules.
+- Hyphen separators and en-dash numeric ranges are the default punctuation;
+  em dashes are explicitly configurable and otherwise produce a prose warning.
+- Page-count bounds are optional post-render warnings, without default limits.
+- Practice reports have a dedicated cover and editable competency assignment.
+- Current contents page fields and uncited-source warnings remain sufficient.
+- Citation page locators, landscape pages, and source-age checks remain deferred.
+- The sample's six chapters are author content, not a universal validated outline.

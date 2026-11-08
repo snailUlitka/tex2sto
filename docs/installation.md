@@ -2,7 +2,7 @@
 
 ## Требования
 
-Проверенная V1 закрепляет следующие версии:
+Версия 2.0 закрепляет следующие версии:
 
 - Python 3.12.11;
 - uv 0.12.x;
@@ -39,23 +39,23 @@ MCP-клиент. Сервер использует `stdio`; [пример на�
 
 Экспериментальный предварительный PDF по флагу `--pdf` требует TeX Live 2026 с
 LuaLaTeX. Для корректного шрифта ему также нужен лицензированный Times New Roman;
-этот формат не входит в гарантии совместимости версии 1.0.
+этот формат не входит в гарантии совместимости версии 2.0.
 
 ## Docker
 
 Образ содержит закреплённые Python, Pandoc и TeX Live:
 
 ```sh
-docker build -t tex2sto:1.1.0 .
+docker build -t tex2sto:2.0.0 .
 ```
 
 Рабочий каталог монтируется в `/work`, поэтому результаты остаются на машине:
 
 ```sh
-docker run --rm -v "$PWD:/work" tex2sto:1.1.0 \
+docker run --rm -v "$PWD:/work" tex2sto:2.0.0 \
   check examples/master-thesis/main.tex --strict
 
-docker run --rm -v "$PWD:/work" tex2sto:1.1.0 \
+docker run --rm -v "$PWD:/work" tex2sto:2.0.0 \
   build examples/master-thesis/main.tex -o build/example
 ```
 
@@ -71,3 +71,7 @@ uv run tex2sto build examples/master-thesis/main.tex -o build/example
 ```
 
 Успешная команда печатает абсолютный путь созданного `main.docx`.
+
+Для отдельной проверки числа страниц нужен Poppler (`brew install poppler`).
+Docker-образ уже содержит `pdfinfo`. Эта зависимость не запускает рендер DOCX;
+на вход `check-pages` передаётся готовый PDF.

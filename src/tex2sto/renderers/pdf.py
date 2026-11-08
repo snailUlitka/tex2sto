@@ -12,6 +12,7 @@ from pathlib import Path
 from tex2sto.dialect.syntax import find_command_calls
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.profiles.ssau.lab_title import latex_title_page
+from tex2sto.profiles.ssau.practice import latex_front_matter
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
 from tex2sto.transform import PAGE_BREAK_MARKER, renderer_body
 
@@ -67,18 +68,20 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
 """
         if metadata.assignment_variant == "2":
             consultants = r"\\".join(
-                f"{_escape(item.role)}: {_escape(item.name)}"
-                for item in metadata.consultants
+                f"{_escape(item.role)}: {_escape(item.name)}" for item in metadata.consultants
             )
             assignment += (
                 f"\\texassignmentcontinuation{{{consultants}}}"
                 f"{{{_escape(metadata.supervisor_name)}}}"
                 f"{{{_escape(metadata.author)}}}\n"
             )
+    front = (
+        latex_front_matter(metadata)
+        if metadata.practice_title is not None
+        else title_commands + "\n\\textitlepage\n" + assignment
+    )
     return rf"""
-{title_commands}
-\textitlepage
-{assignment}
+{front}
 \texabstract{{{counts[ObjectKind.FIGURE]}}}{{{counts[ObjectKind.TABLE]}}}{{{len(project.bibliography)}}}{{{appendices}}}{{{keywords}}}{{{metadata.abstract}}}
 \tableofcontents
 """
@@ -86,8 +89,31 @@ def _front_matter(project: SourceProject, index: NumberingIndex) -> str:
 
 def _document_source(project: SourceProject, index: NumberingIndex) -> str:
     body = renderer_body(project, index, target="pdf").replace(PAGE_BREAK_MARKER, r"\clearpage")
+    marker = {"hyphen": "-", "en-dash": "–", "em-dash": "—"}[project.settings.list_marker]
+    lists = "\n".join(
+        f"\\renewcommand{{\\labelitem{level}}}{{{marker}}}" for level in ("i", "ii", "iii", "iv")
+    )
+    numbering_functions = (
+        {"ii": "asbuk"} if project.settings.list_numbering == "hierarchical" else {}
+    )
+    lists += "\n" + "\n".join(
+        f"\\renewcommand{{\\labelenum{level}}}"
+        f"{{\\{numbering_functions.get(level, 'arabic')}"
+        f"{{enum{level}}})}}"
+        for level in ("i", "ii", "iii", "iv")
+    )
     return (
         "\\documentclass{tex2sto-ssau}\n"
+        "\\usepackage{etoolbox}\n"
+        + lists
+        + "\n"
+        + "\n".join(
+            f"\\AtBeginEnvironment{{{environment}}}"
+            f"{{\\setstretch{{{project.settings.table_line_spacing}}}"
+            "\\fontsize{12}{14}\\selectfont}"
+            for environment in ("tabular", "longtable")
+        )
+        + "\n"
         "\\begin{document}\n"
         + _front_matter(project, index)
         + body
