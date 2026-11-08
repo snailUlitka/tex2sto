@@ -6,7 +6,7 @@ V1 targets the editable DOCX path. The uv-managed CLI validates the controlled
 dialect, creates a styled editable DOCX, and includes a complete representative
 project. The Pandoc renderer, profile resources, Docker definition, tests, and
 Russian user documentation are present. The implemented PDF path remains an
-experimental preview until v2.
+experimental preview beyond release 2.0.
 
 ## Completed V1 Work
 
@@ -80,7 +80,7 @@ refresh remains a manual release gate.
 
 ## Later Work
 
-- complete PDF conformance for v2, including structural contents entries, full
+- complete PDF conformance beyond 2.0, including structural contents entries, full
   assignment metadata, bounded figure sizing, visual regression coverage, and
   mandatory renderer tests in CI;
 - incorporate any additional bibliography STO clauses into the structured model
@@ -92,3 +92,9 @@ refresh remains a manual release gate.
 - support other universities without weakening the strict dialect contract;
 - consider landscape pages, SVG, TikZ, and numbered algorithms as explicitly
   versioned dialect additions.
+
+## Version 2.0 implementation
+
+See [release-2.0.md](release-2.0.md) for the approved scope and release evidence.
+The major version covers configuration, practice front matter, DOCX corrections,
+and post-render checks. It does not make PDF conformance mandatory in this release.

@@ -45,9 +45,9 @@ def test_docx_combines_terminology_and_formats_symbols_and_appendix() -> None:
     assert source.count("ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ") == 1
     assert "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ" not in source
     assert "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" not in source
-    assert "TEX2STO_SYMBOLS где $Q$ --- доля пройденных проверок," in source
-    assert "$N_{passed}$ --- число успешных проверок," in source
-    assert "$N_{total}$ --- общее число проверок." in source
+    assert "TEX2STO_SYMBOLS где $Q$ - доля пройденных проверок;" in source
+    assert "$N_{passed}$ - число успешных проверок;" in source
+    assert "$N_{total}$ - общее число проверок." in source
     assert r"\section*{ПРИЛОЖЕНИЕ А\\Пример программного кода}" in source
 
 
@@ -66,7 +66,7 @@ def test_structured_bibliography_uses_normalized_compact_separators() -> None:
 
     assert _format_source(item) == (
         "Иванов И. И.; Петров П. П. «Методы контроля» [Текст]/"
-        "И. И. Иванов, П. П. Петров//Журнал «Контроль» — 2025 — № 4 — С. 3–9."
+        "И. И. Иванов, П. П. Петров//Журнал «Контроль» - 2025 - № 4 - С. 3–9."
     )
 
 
@@ -102,12 +102,10 @@ def test_structured_bibliography_supports_all_acceptance_kinds() -> None:
     }
 
     for kind, fields in fixtures.items():
-        rendered = _format_source(
-            BibliographyItem(key=kind, kind=kind, title="Название", **fields)
-        )
+        rendered = _format_source(BibliographyItem(key=kind, kind=kind, title="Название", **fields))
         assert rendered.endswith(".")
-        assert " — " in rendered
-    assert "— 576 с." in _format_source(
+        assert " - " in rendered
+    assert "- 576 с." in _format_source(
         BibliographyItem(
             key="book",
             kind="book",
@@ -118,3 +116,15 @@ def test_structured_bibliography_supports_all_acceptance_kinds() -> None:
             pages="576",
         )
     )
+
+
+def test_bibliography_preserves_standard_identifiers() -> None:
+    rendered = _format_source(
+        BibliographyItem(
+            key="sto",
+            kind="standard",
+            title="СТО 02068410-004-2018",
+            details="Самара: Университет, 2019. 37 с.",
+        )
+    )
+    assert "СТО 02068410-004-2018" in rendered

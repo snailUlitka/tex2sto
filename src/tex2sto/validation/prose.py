@@ -34,7 +34,9 @@ def _plain_text_line(line: str) -> str:
     return line
 
 
-def check_prose(source: str, *, path: Path, diagnostics: DiagnosticBag) -> None:
+def check_prose(
+    source: str, *, path: Path, diagnostics: DiagnosticBag, allow_em_dash: bool = False
+) -> None:
     suppressed = _suppressed_lines(source)
     checks: tuple[tuple[str, re.Pattern[str], str], ...] = (
         (
@@ -70,6 +72,18 @@ def check_prose(source: str, *, path: Path, diagnostics: DiagnosticBag) -> None:
             in_verbatim = True
         if "\\[" in raw_line or "\\begin{equation}" in raw_line:
             in_display_math = True
+        if (
+            not in_verbatim
+            and not allow_em_dash
+            and re.search(r"—|(?<!-)---(?!-)", re.sub(r"%.*$", "", raw_line))
+            and "T2S-W106" not in suppressed.get(line_number, set())
+        ):
+            diagnostics.warning(
+                "T2S-W106",
+                "em dash is disabled by project punctuation policy; use a hyphen or en dash",
+                path=path,
+                line=line_number,
+            )
         if not in_display_math and not in_verbatim:
             plain = _plain_text_line(raw_line)
             for code, pattern, message in checks:

@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from tex2sto.config import ProjectSettings
+
 
 @dataclass(frozen=True, slots=True)
 class Consultant:
@@ -34,6 +36,8 @@ class BibliographyItem:
 @dataclass(slots=True)
 class DocumentMetadata:
     lab_title: LabTitle | None = None
+    practice_title: PracticeTitle | None = None
+    practice_assignments: list[PracticeAssignment] = field(default_factory=list)
     title: str = ""
     author: str = ""
     student_group: str = ""
@@ -73,6 +77,29 @@ class LabTitle:
     reviewer_label: str = "Проверил"
 
 
+@dataclass(frozen=True, slots=True)
+class PracticeTitle:
+    kind: str
+    type: str
+    start: str
+    end: str
+    order_date: str
+    order_number: str
+    organization: str
+    author_dative: str
+    study_level: str = "магистратуры"
+    submitted: str = ""
+    defended: str = ""
+    grade: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class PracticeAssignment:
+    competency: str
+    outcomes: str
+    task: str
+
+
 @dataclass(slots=True)
 class SourceProject:
     master: Path
@@ -82,3 +109,4 @@ class SourceProject:
     metadata: DocumentMetadata
     bibliography: list[BibliographyItem]
     source_files: tuple[Path, ...]
+    settings: ProjectSettings = field(default_factory=ProjectSettings)

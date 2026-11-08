@@ -4,10 +4,10 @@
 
 tex2sto is a Python CLI that compiles a deliberately restricted LaTeX dialect
 into editable DOCX documents that conform to Samara University
-STO 02068410-004-2018. DOCX is the v1 release output. The existing optional PDF
-path is an experimental preview until v2.
+STO 02068410-004-2018. DOCX is the supported release output. The optional PDF path remains an
+experimental preview in version 2.0.
 
-V1 is implemented as a uv-managed Python 3.12 application. Pandoc 3.11 produces
+The application is implemented as a uv-managed Python 3.12 application. Pandoc 3.11 produces
 DOCX using resources owned by the `ssau` profile. LuaLaTeX from TeX Live 2026
 produces the experimental PDF preview.
 
@@ -41,10 +41,10 @@ produces the experimental PDF preview.
 - Do not implement a general LaTeX parser or a DOCX writer from scratch.
 - Accept only the documented tex2sto dialect. Unknown LaTeX commands are
   errors, not best-effort raw pass-through.
-- Keep university-specific behavior isolated under the `ssau` profile even
-  while its v1 rules are hardcoded.
+- Keep university-specific behavior isolated under the `ssau` profile with
+  strict project-level overrides in tex2sto.toml.
 - Generate DOCX by default. PDF is available only as an explicitly requested
-  experimental preview and is outside the v1 compatibility contract.
+  experimental preview and is outside the DOCX compatibility contract.
 - Apply explicit `Tex2Sto ...` Word styles to semantic content. DOCX must remain
   editable; equations should use native OMML when the tested Pandoc path
   supports them.
@@ -77,8 +77,10 @@ uv run ruff check .
 uv run pytest
 uv run tex2sto check examples/master-thesis/main.tex --strict
 uv run tex2sto check examples/lab-report/main.tex --strict
+uv run tex2sto check examples/practice-report/main.tex --strict
 uv run tex2sto build examples/master-thesis/main.tex -o build/example
 uv run tex2sto build examples/lab-report/main.tex -o build/lab-report
+uv run tex2sto build examples/practice-report/main.tex -o build/practice-report
 uv build
 docker build --platform linux/amd64 -t tex2sto:ci .
 git diff --check
@@ -87,5 +89,5 @@ git diff --check
 DOCX renderer changes require structural output checks and visual inspection.
 DOCX behavior that depends on fields must also be verified in current Microsoft
 Word before a release compatibility claim. PDF conformance and mandatory PDF
-renderer coverage are deferred to v2. Verify that links in this file,
+renderer coverage are deferred beyond version 2.0. Verify that links in this file,
 `harness/README.md`, the root README, and `docs/README.md` resolve.

@@ -5,7 +5,7 @@ It is intentionally separate from the Russian user documentation in `docs/`.
 
 ## Documents
 
-- [product.md](product.md) defines the goal, v1 scope, non-goals, and confirmed
+- [product.md](product.md) defines the goal, release scope, non-goals, and confirmed
   product decisions.
 - [architecture.md](architecture.md) defines the implemented toolchain, pipeline,
   component boundaries, output contracts, and repository shape.
@@ -15,6 +15,8 @@ It is intentionally separate from the Russian user documentation in `docs/`.
   deferred rather than accidentally omitted.
 - [standards/ssau.md](standards/ssau.md) is a derived implementation checklist
   for STO 02068410-004-2018. It is not a replacement for the source standard.
+
+- [release-2.0.md](release-2.0.md) records the approved 2.0 scope and acceptance evidence.
 
 ## Agent Operating Policy
 

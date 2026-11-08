@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from tex2sto.dialect.lab_title import parse_lab_title
+from tex2sto.dialect.practice import parse_practice_assignment, parse_practice_title
 from tex2sto.dialect.syntax import find_command_calls, find_environment, replace_spans
 from tex2sto.errors import SourceError
 from tex2sto.model import BibliographyItem, Consultant, DocumentMetadata
@@ -90,10 +91,27 @@ def parse_project_source(
     _, _, body = document_envs[0]
 
     metadata = DocumentMetadata()
+    practice_titles = find_command_calls(source, "practicetitle", 1)
+    if len(practice_titles) > 1:
+        raise SourceError("metadata command \\practicetitle may appear only once")
+    if practice_titles:
+        call = practice_titles[0]
+        if not document_classes[0].end <= call.start < call.end <= document_envs[0][0]:
+            raise SourceError("\\practicetitle must appear after documentclass and before document")
+        metadata.practice_title = parse_practice_title(call.args[0])
+    assignment_calls = find_command_calls(source, "practiceassignment", 3)
+    if assignment_calls and not practice_titles:
+        raise SourceError("\\practiceassignment requires \\practicetitle")
+    for call in assignment_calls:
+        if not document_classes[0].end <= call.start < call.end <= document_envs[0][0]:
+            raise SourceError("\\practiceassignment must appear in the preamble")
+        metadata.practice_assignments.append(parse_practice_assignment(call.args))
     lab_titles = find_command_calls(source, "labtitle", 1)
     if len(lab_titles) > 1:
         raise SourceError("metadata command \\labtitle may appear only once")
     if lab_titles:
+        if practice_titles:
+            raise SourceError("\\labtitle cannot be combined with \\practicetitle")
         call = lab_titles[0]
         if not document_classes[0].end <= call.start < call.end <= document_envs[0][0]:
             raise SourceError("\\labtitle must appear after documentclass and before document")
@@ -104,6 +122,7 @@ def parse_project_source(
         if find_environment(source, "abstract"):
             raise SourceError("\\labtitle cannot be combined with an abstract")
     removals: list[tuple[int, int, str]] = []
+    removals.extend((call.start, call.end, "") for call in [*practice_titles, *assignment_calls])
     for command, (attribute, arity) in SINGLE_COMMANDS.items():
         args, spans = _one(source, command, arity)
         removals.extend(spans)

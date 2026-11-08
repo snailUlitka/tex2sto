@@ -46,8 +46,17 @@ jobs:
       - name: Check the laboratory report
         run: uv run tex2sto check examples/lab-report/main.tex --strict
 
+      - name: Check the practice report
+        run: uv run tex2sto check examples/practice-report/main.tex --strict
+
       - name: Build distribution
         run: uv build
 
       - name: Build Docker image
         run: docker build --platform linux/amd64 --tag tex2sto:ci .
+
+      - name: Build representative DOCX files in the pinned image
+        run: |
+          docker run --rm -v "$PWD:/work" tex2sto:ci build examples/master-thesis/main.tex -o build/ci/master --strict
+          docker run --rm -v "$PWD:/work" tex2sto:ci build examples/lab-report/main.tex -o build/ci/lab --strict
+          docker run --rm -v "$PWD:/work" tex2sto:ci build examples/practice-report/main.tex -o build/ci/practice --strict

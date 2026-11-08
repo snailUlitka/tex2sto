@@ -12,6 +12,7 @@ from tex2sto.model.numbering import APPENDIX_LETTERS
 PAGE_BREAK_MARKER = "TEX2STO_PAGE_BREAK"
 TABLE_BREAK_MARKER = "TEX2STO_TABLE_BREAK"
 SYMBOLS_MARKER = "TEX2STO_SYMBOLS"
+EQUATION_NUMBER_MARKER = "TEX2STO_EQ_NUMBER_"
 
 
 def _object_number(index: NumberingIndex, label: str | None) -> str:
@@ -36,7 +37,7 @@ def _caption(content: str) -> str:
     return calls[0].args[0].strip() if calls else ""
 
 
-def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
+def _replace_objects(source: str, index: NumberingIndex, *, target: str, separator: str) -> str:
     replacements: list[tuple[int, int, str]] = []
     specifications = (
         ("figure", ObjectKind.FIGURE, "Рисунок"),
@@ -49,7 +50,7 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
             number = _object_number(index, label)
             caption = _caption(content)
             command = "caption" if target == "docx" else "caption*"
-            rendered_caption = f"{prefix} {number} --- {caption}"
+            rendered_caption = f"{prefix} {number} {separator} {caption}"
             content_replacements = [
                 (call.start, call.end, f"\\{command}{{{rendered_caption}}}")
                 for call in find_command_calls(content, "caption", 1)
@@ -74,15 +75,13 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
                     if target == "pdf":
                         replacement = ""
                     else:
-                        replacement = " & ".join(
-                            TABLE_BREAK_MARKER for _ in range(column_count)
-                        ) + r" \\"
+                        replacement = (
+                            " & ".join(TABLE_BREAK_MARKER for _ in range(column_count)) + r" \\"
+                        )
                     content_replacements.append((call.start, call.end, replacement))
             normalized = replace_spans(content, content_replacements)
             options = "[H]" if target == "pdf" and environment in {"figure", "table"} else ""
-            rebuilt = (
-                f"\\begin{{{environment}}}{options}{normalized}\\end{{{environment}}}"
-            )
+            rebuilt = f"\\begin{{{environment}}}{options}{normalized}\\end{{{environment}}}"
             replacements.append((start, end, rebuilt))
 
     for environment in ("equation", "align"):
@@ -90,22 +89,30 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str) -> str:
             label = _label(content)
             number = _object_number(index, label)
             cleaned = _clean_commands(content, (("label", 1),))
-            rebuilt = (
-                f"\\begin{{{environment}}}\n{cleaned}\n\\tag{{{number}}}\n\\end{{{environment}}}"
-            )
+            if target == "docx":
+                rebuilt = (
+                    f"\\begin{{{environment}*}}\n{cleaned}\n\\end{{{environment}*}}\n\n"
+                    f"{EQUATION_NUMBER_MARKER}{number}\n\n"
+                )
+            else:
+                rebuilt = (
+                    f"\\begin{{{environment}}}\n{cleaned}\n\\tag{{{number}}}"
+                    f"\n\\end{{{environment}}}"
+                )
             replacements.append((start, end, rebuilt))
     return replace_spans(source, replacements)
 
 
-def _normalize_bibliography_text(value: str) -> str:
+def _normalize_bibliography_text(value: str, separator: str = "-") -> str:
     normalized = value.strip()
     while '"' in normalized:
         normalized = normalized.replace('"', "«", 1)
         if '"' not in normalized:
             break
         normalized = normalized.replace('"', "»", 1)
-    normalized = normalized.replace(" - ", " — ").replace(" – ", " — ")
-    normalized = re.sub(r"(?<=\d)\s*[-—]\s*(?=\d)", "–", normalized)
+    normalized = re.sub(r" (?:(?:---)|[-–—]) ", f" {separator} ", normalized)
+    if re.fullmatch(r"\d+\s*[-—–]\s*\d+", normalized):
+        normalized = re.sub(r"\s*[-—–]\s*", "–", normalized)
     return normalized
 
 
@@ -117,11 +124,13 @@ def _source_medium(item: BibliographyItem) -> str:
     return "Текст"
 
 
-def _format_structured_source(item: BibliographyItem) -> str:
-    authors = _normalize_bibliography_text(item.authors).rstrip(". ")
-    title = _normalize_bibliography_text(item.title).rstrip(". ")
-    responsibility = _normalize_bibliography_text(item.contributors or item.authors).rstrip(". ")
-    container = _normalize_bibliography_text(item.container).rstrip(". ")
+def _format_structured_source(item: BibliographyItem, separator: str = "-") -> str:
+    authors = _normalize_bibliography_text(item.authors, separator).rstrip(". ")
+    title = _normalize_bibliography_text(item.title, separator).rstrip(". ")
+    responsibility = _normalize_bibliography_text(
+        item.contributors or item.authors, separator
+    ).rstrip(". ")
+    container = _normalize_bibliography_text(item.container, separator).rstrip(". ")
 
     description = f"{title} [{_source_medium(item)}]"
     if responsibility:
@@ -132,9 +141,9 @@ def _format_structured_source(item: BibliographyItem) -> str:
         description = f"{authors}. {description}"
 
     publication = ""
-    place = _normalize_bibliography_text(item.place).rstrip(". ")
-    publisher = _normalize_bibliography_text(item.publisher).rstrip(". ")
-    year = _normalize_bibliography_text(item.year).rstrip(". ")
+    place = _normalize_bibliography_text(item.place, separator).rstrip(". ")
+    publisher = _normalize_bibliography_text(item.publisher, separator).rstrip(". ")
+    year = _normalize_bibliography_text(item.year, separator).rstrip(". ")
     publication = f"{place}: {publisher}" if place and publisher else place or publisher
     if year:
         publication = f"{publication}, {year}" if publication else year
@@ -143,10 +152,10 @@ def _format_structured_source(item: BibliographyItem) -> str:
     if publication:
         parts.append(publication)
     if item.issue:
-        issue = _normalize_bibliography_text(item.issue).strip()
+        issue = _normalize_bibliography_text(item.issue, separator).strip()
         parts.append(issue if issue.startswith("№") else f"№ {issue}")
     if item.pages:
-        pages = _normalize_bibliography_text(item.pages).strip().rstrip(".")
+        pages = _normalize_bibliography_text(item.pages, separator).strip().rstrip(".")
         if re.fullmatch(r"\d+–\d+", pages):
             pages = f"С. {pages}"
         elif pages.isdigit():
@@ -156,17 +165,17 @@ def _format_structured_source(item: BibliographyItem) -> str:
         parts.append(f"URL: {item.url.strip().rstrip('. ')}")
     if item.access_date:
         parts.append(f"(дата обращения: {item.access_date.strip()})")
-    return " — ".join(parts).rstrip(". ") + "."
+    return f" {separator} ".join(parts).rstrip(". ") + "."
 
 
-def _format_source(item: BibliographyItem) -> str:
+def _format_source(item: BibliographyItem, separator: str = "-") -> str:
     if not item.details:
-        return _format_structured_source(item)
-    title = _normalize_bibliography_text(item.title).rstrip(". ")
+        return _format_structured_source(item, separator)
+    title = _normalize_bibliography_text(item.title, separator).rstrip(". ")
     if item.kind == "web" and "Электронный ресурс" not in title:
         title = f"{title} [Электронный ресурс]"
     parts = [
-        _normalize_bibliography_text(part).rstrip(". ")
+        _normalize_bibliography_text(part, separator).rstrip(". ")
         for part in (item.authors, title, item.details)
         if part
     ]
@@ -184,10 +193,11 @@ def _bibliography(project: SourceProject, index: NumberingIndex, *, target: str)
     ordered = sorted(index.citations, key=index.citations.get)
     ordered.extend(item.key for item in project.bibliography if item.key not in index.citations)
     lines = [
-        f"{number} {_format_source(by_key[key])}" for number, key in enumerate(ordered, start=1)
+        f"{number} {_format_source(by_key[key], project.settings.separator_text)}"
+        for number, key in enumerate(ordered, start=1)
     ]
     title = _structural("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", target=target)
-    heading = f"{PAGE_BREAK_MARKER}\n\n{title}"
+    heading = f"\n\n{PAGE_BREAK_MARKER}\n\n{title}"
     return heading + "\n\n" + "\n\n".join(lines)
 
 
@@ -200,8 +210,8 @@ def _replace_semantic_commands(
 ) -> str:
     replacements: list[tuple[int, int, str]] = []
     headings = {
-        "introduction": f"{PAGE_BREAK_MARKER}\n\n{_structural('ВВЕДЕНИЕ', target=target)}",
-        "conclusion": f"{PAGE_BREAK_MARKER}\n\n{_structural('ЗАКЛЮЧЕНИЕ', target=target)}",
+        "introduction": f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural('ВВЕДЕНИЕ', target=target)}",
+        "conclusion": f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural('ЗАКЛЮЧЕНИЕ', target=target)}",
     }
     for command, replacement in headings.items():
         replacements.extend(
@@ -219,7 +229,7 @@ def _replace_semantic_commands(
         replacement = ""
         if position == 0:
             title = "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ"
-            replacement = f"{PAGE_BREAK_MARKER}\n\n{_structural(title, target=target)}"
+            replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural(title, target=target)}"
         replacements.append((start, end, replacement))
     appendix_calls = find_command_calls(source, "appendix", 2)
     for appendix_number, call in enumerate(appendix_calls, start=1):
@@ -229,11 +239,17 @@ def _replace_semantic_commands(
             appendix_heading = f"\\texappendix{{{letter}}}{{{title}}}"
         else:
             appendix_heading = f"\\section*{{ПРИЛОЖЕНИЕ {letter}\\\\{title}}}"
-        replacement = f"{PAGE_BREAK_MARKER}\n\n{appendix_heading}"
+        replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n{appendix_heading}"
         replacements.append((call.start, call.end, replacement))
     for call in find_command_calls(source, "definition", 2):
         term, description = call.args
-        replacements.append((call.start, call.end, f"{term.strip()} --- {description.strip()}"))
+        replacements.append(
+            (
+                call.start,
+                call.end,
+                f"\n\n{term.strip()} {project.settings.separator_text} {description.strip()}\n\n",
+            )
+        )
     for start, end, content in find_environment(source, "symbols"):
         symbols = find_command_calls(content, "symbol", 2)
         lines = []
@@ -241,12 +257,14 @@ def _replace_semantic_commands(
             symbol, explanation = (value.strip() for value in call.args)
             explanation = explanation.rstrip(" ,;.")
             prefix = "где " if position == 0 else ""
-            ending = "." if position == len(symbols) - 1 else ","
-            lines.append(f"{prefix}{symbol} --- {explanation}{ending}")
+            ending = "." if position == len(symbols) - 1 else ";"
+            lines.append(
+                f"{prefix}{symbol} {project.settings.separator_text} {explanation}{ending}"
+            )
         separator = r"\\ " if target == "pdf" else r"\newline "
         rendered = separator.join(lines)
         rendered = (
-            f"{SYMBOLS_MARKER} {rendered}" if target == "docx" else rf"\noindent {rendered}"
+            f"\n\n{SYMBOLS_MARKER} {rendered}\n\n" if target == "docx" else rf"\noindent {rendered}"
         )
         replacements.append((start, end, rendered))
     for call in find_command_calls(source, "printbibliography", 0):
@@ -255,7 +273,7 @@ def _replace_semantic_commands(
     first_appendix = appendix_calls[0].start if appendix_calls else len(source)
     for call in find_command_calls(source, "section", 1):
         if call.start < first_appendix:
-            replacement = f"{PAGE_BREAK_MARKER}\n\n\\section{{{call.args[0].strip()}}}"
+            replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n\\section{{{call.args[0].strip()}}}"
             replacements.append((call.start, call.end, replacement))
     for appendix_number, appendix in enumerate(appendix_calls, start=1):
         start = appendix.end
@@ -291,9 +309,7 @@ def _replace_semantic_commands(
                 display = f"{letter}.{section_number}.{subsection_number}"
             else:
                 subsubsection_number += 1
-                display = (
-                    f"{letter}.{section_number}.{subsection_number}.{subsubsection_number}"
-                )
+                display = f"{letter}.{section_number}.{subsection_number}.{subsubsection_number}"
             replacements.append(
                 (call.start, call.end, f"\\{command}*{{{display}~{call.args[0].strip()}}}")
             )
@@ -315,6 +331,8 @@ def _replace_references(source: str, index: NumberingIndex) -> str:
 
 def renderer_body(project: SourceProject, index: NumberingIndex, *, target: str) -> str:
     """Return validated LaTeX reduced to constructs accepted by a renderer."""
-    source = _replace_objects(project.body, index, target=target)
+    source = _replace_objects(
+        project.body, index, target=target, separator=project.settings.separator_text
+    )
     source = _replace_semantic_commands(source, project, index, target=target)
     return _replace_references(source, index).strip()

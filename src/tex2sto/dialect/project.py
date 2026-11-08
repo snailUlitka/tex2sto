@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tex2sto.config import load_settings
 from tex2sto.dialect.metadata import parse_project_source
 from tex2sto.dialect.syntax import find_command_calls, replace_spans
 from tex2sto.errors import SourceError
@@ -47,7 +48,7 @@ def _expand(path: Path, *, root: Path, stack: tuple[Path, ...], seen: list[Path]
     return replace_spans(source, replacements)
 
 
-def load_project(master: Path) -> SourceProject:
+def load_project(master: Path, *, config: Path | None = None) -> SourceProject:
     master = master.expanduser().resolve()
     if not master.is_file():
         raise SourceError(f"master source does not exist: {master}")
@@ -65,4 +66,5 @@ def load_project(master: Path) -> SourceProject:
         metadata=metadata,
         bibliography=bibliography,
         source_files=tuple(dict.fromkeys(seen)),
+        settings=load_settings(root, config),
     )

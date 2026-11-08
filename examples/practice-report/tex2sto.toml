@@ -1,0 +1,8 @@
+[layout]
+table_line_spacing = 1.0
+
+[structure]
+terminology_position = "after-conclusion"
+
+[lists]
+numbering = "decimal"

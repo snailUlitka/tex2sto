@@ -13,11 +13,12 @@ from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Mm, RGBColor
+from docx.shared import Mm, Pt, RGBColor
 
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.profiles.ssau.lab_title import docx_title_page, report_name
+from tex2sto.profiles.ssau.practice import docx_front_matter
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
@@ -26,6 +27,7 @@ from tex2sto.renderers.docx_fields import (
 )
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
 from tex2sto.transform import (
+    EQUATION_NUMBER_MARKER,
     PAGE_BREAK_MARKER,
     SYMBOLS_MARKER,
     TABLE_BREAK_MARKER,
@@ -37,9 +39,7 @@ PROFILE = files("tex2sto") / "profiles" / "ssau" / "pandoc"
 STRUCTURAL_TOC_TITLES = {
     "ВВЕДЕНИЕ": "Введение",
     "ЗАКЛЮЧЕНИЕ": "Заключение",
-    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ": (
-        "Определения, обозначения и сокращения"
-    ),
+    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ": ("Определения, обозначения и сокращения"),
     "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ": "Список использованных источников",
 }
 
@@ -99,8 +99,7 @@ def _title_page(document, project: SourceProject) -> list:
     if metadata.norm_controller:
         details.append(f"Нормоконтролер: {metadata.norm_controller}")
     elements.extend(
-        _front_paragraph(document, line, style="Tex2Sto Title Details")._p
-        for line in details
+        _front_paragraph(document, line, style="Tex2Sto Title Details")._p for line in details
     )
     city = _front_paragraph(
         document,
@@ -148,8 +147,7 @@ def _assignment_pages(document, project: SourceProject) -> list:
             f"Обучающийся: {metadata.author}",
         ]
         signature_paragraphs = [
-            _front_paragraph(document, line, style="Tex2Sto Assignment")
-            for line in signature_lines
+            _front_paragraph(document, line, style="Tex2Sto Assignment") for line in signature_lines
         ]
         signature_paragraphs[-1].add_run().add_break(WD_BREAK.PAGE)
         elements.extend(paragraph._p for paragraph in signature_paragraphs)
@@ -219,7 +217,10 @@ def _format_heading_runs(paragraph) -> None:
                 run_style.remove(style)
 
 
-def _apply_styles(document) -> None:
+def _apply_styles(document, project: SourceProject) -> None:
+    document.styles[
+        "Tex2Sto Table Text"
+    ].paragraph_format.line_spacing = project.settings.table_line_spacing
     document.styles["Tex2Sto Table Continuation"].font.color.rgb = RGBColor(0, 0, 0)
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
@@ -227,16 +228,12 @@ def _apply_styles(document) -> None:
             paragraph.clear()
             paragraph.add_run().add_break(WD_BREAK.PAGE)
             paragraph.style = "Tex2Sto Body"
-        elif (
-            text
-            in {
-                "ВВЕДЕНИЕ",
-                "ЗАКЛЮЧЕНИЕ",
-                "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ",
-                "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
-            }
-            or text.startswith("ПРИЛОЖЕНИЕ ")
-        ):
+        elif text in {
+            "ВВЕДЕНИЕ",
+            "ЗАКЛЮЧЕНИЕ",
+            "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ",
+            "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+        } or text.startswith("ПРИЛОЖЕНИЕ "):
             paragraph.style = "Tex2Sto Structural Heading"
         elif paragraph.style.name.startswith("Heading "):
             level = paragraph.style.name.rsplit(" ", 1)[-1]
@@ -272,7 +269,7 @@ def _apply_styles(document) -> None:
                     paragraph.style = "Tex2Sto Table Text"
 
 
-def _format_lists(document) -> None:
+def _format_lists(document, project: SourceProject) -> None:
     numbering = document.part.numbering_part.element
     for abstract in numbering.findall(qn("w:abstractNum")):
         identifier = int(abstract.get(qn("w:abstractNumId"), "0"))
@@ -286,7 +283,14 @@ def _format_lists(document) -> None:
             current_format = number_format.get(qn("w:val"))
             current_text = level_text.get(qn("w:val"), "")
             if current_format == "bullet":
-                level_text.set(qn("w:val"), "-")
+                level_text.set(
+                    qn("w:val"),
+                    {
+                        "hyphen": "-",
+                        "en-dash": "–",
+                        "em-dash": "—",
+                    }[project.settings.list_marker],
+                )
                 run_properties = level.find(qn("w:rPr"))
                 if run_properties is not None:
                     level.remove(run_properties)
@@ -294,6 +298,19 @@ def _format_lists(document) -> None:
                 number_format.set(qn("w:val"), "russianLower")
             elif current_format == "lowerRoman":
                 number_format.set(qn("w:val"), "decimal")
+            if current_format != "bullet" and project.settings.list_numbering == "decimal":
+                number_format.set(qn("w:val"), "decimal")
+            properties = level.find(qn("w:pPr"))
+            if properties is None:
+                properties = OxmlElement("w:pPr")
+                level.append(properties)
+            indent = properties.find(qn("w:ind"))
+            if indent is None:
+                indent = OxmlElement("w:ind")
+                properties.append(indent)
+            indent.attrib.clear()
+            indent.set(qn("w:left"), "0")
+            indent.set(qn("w:firstLine"), "709")
             if current_format != "bullet":
                 level_text.set(qn("w:val"), current_text.rstrip(".") + ")")
             suffix = level.find(qn("w:suff"))
@@ -339,16 +356,27 @@ def _toc_entries(document) -> list[tuple[int, str, str]]:
 
 
 def _format_equations(document, index: NumberingIndex) -> None:
-    numbers = [item.display for item in index.objects if item.kind is ObjectKind.EQUATION]
-    equation_index = 0
     for paragraph in document.paragraphs:
         math_paragraph = paragraph._p.find(qn("m:oMathPara"))
         if math_paragraph is None:
             continue
-        math = math_paragraph.find(qn("m:oMath"))
-        if math is None or equation_index >= len(numbers):
+        math_nodes = list(math_paragraph.findall(qn("m:oMath")))
+        if not math_nodes:
             continue
-        math_paragraph.remove(math)
+        marker = paragraph._p.getnext()
+        number_text = (
+            "".join(node.text or "" for node in marker.iter(qn("w:t")))
+            if marker is not None
+            else ""
+        )
+        numbered = number_text.startswith(EQUATION_NUMBER_MARKER)
+        if not numbered:
+            paragraph.style = "Tex2Sto Equation"
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            continue
+        number_text = number_text.removeprefix(EQUATION_NUMBER_MARKER).strip()
+        for math in math_nodes:
+            math_paragraph.remove(math)
         table = document.add_table(rows=1, cols=3)
         table.alignment = WD_TABLE_ALIGNMENT.LEFT
         table.autofit = False
@@ -372,17 +400,20 @@ def _format_equations(document, index: NumberingIndex) -> None:
         center = table.cell(0, 1).paragraphs[0]
         center.style = "Tex2Sto Equation"
         center.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        center._p.append(math)
+        for math in math_nodes:
+            center._p.append(math)
         number = table.cell(0, 2).paragraphs[0]
         number.style = "Tex2Sto Equation"
+        number.paragraph_format.space_before = Pt(0)
+        number.paragraph_format.space_after = Pt(0)
         number.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        number.add_run(f"({numbers[equation_index]})")
+        number.add_run(f"({number_text})")
         parent = paragraph._p.getparent()
         insertion = parent.index(paragraph._p)
         table._tbl.getparent().remove(table._tbl)
         parent.insert(insertion, table._tbl)
         parent.remove(paragraph._p)
-        equation_index += 1
+        parent.remove(marker)
 
 
 def _balance_table_columns(table) -> None:
@@ -394,9 +425,7 @@ def _balance_table_columns(table) -> None:
         return
 
     content_rows = [
-        row
-        for row in table.rows
-        if not any(TABLE_BREAK_MARKER in cell.text for cell in row.cells)
+        row for row in table.rows if not any(TABLE_BREAK_MARKER in cell.text for cell in row.cells)
     ]
     weights = [
         max((len(row.cells[position].text.strip()) for row in content_rows), default=0) + 8
@@ -421,6 +450,32 @@ def _table_segment(table, start: int, end: int):
     return segment
 
 
+def _omit_bottom_border(segment) -> None:
+    properties = segment.find(qn("w:tblPr"))
+    borders = properties.find(qn("w:tblBorders"))
+    if borders is None:
+        borders = OxmlElement("w:tblBorders")
+        properties.append(borders)
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "nil")
+    borders.append(bottom)
+    for cell in segment.findall(qn("w:tr"))[-1].findall(qn("w:tc")):
+        properties = cell.find(qn("w:tcPr"))
+        if properties is None:
+            properties = OxmlElement("w:tcPr")
+            cell.insert(0, properties)
+        borders = properties.find(qn("w:tcBorders"))
+        if borders is None:
+            borders = OxmlElement("w:tcBorders")
+            properties.append(borders)
+        old = borders.find(qn("w:bottom"))
+        if old is not None:
+            borders.remove(old)
+        bottom = OxmlElement("w:bottom")
+        bottom.set(qn("w:val"), "nil")
+        borders.append(bottom)
+
+
 def _split_longtable(document, table, display: str) -> None:
     marker_rows = [
         position
@@ -439,7 +494,10 @@ def _split_longtable(document, table, display: str) -> None:
             continuation.add_run().add_break(WD_BREAK.PAGE)
             continuation.add_run(f"Продолжение таблицы {display}")
             elements.append(continuation._p)
-        elements.append(_table_segment(table, start, end))
+        segment = _table_segment(table, start, end)
+        if segment_number < len(starts) - 1:
+            _omit_bottom_border(segment)
+        elements.append(segment)
 
     parent = table._tbl.getparent()
     insertion = parent.index(table._tbl)
@@ -470,8 +528,8 @@ def _format_tables(document, project: SourceProject, index: NumberingIndex) -> N
 
 def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> None:
     document = Document(path)
-    _apply_styles(document)
-    _format_lists(document)
+    _apply_styles(document, project)
+    _format_lists(document, project)
     _format_tables(document, project, index)
     _format_equations(document, index)
     toc_entries = _toc_entries(document)
@@ -491,8 +549,14 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
         docx_title_page(document, lab_title)
         if lab_title is not None
         else [
-            *_title_page(document, project),
-            *_assignment_pages(document, project),
+            *(
+                docx_front_matter(document, project.metadata, project.settings.table_line_spacing)
+                if project.metadata.practice_title is not None
+                else [
+                    *_title_page(document, project),
+                    *_assignment_pages(document, project),
+                ]
+            ),
             *_abstract_and_toc(document, project, index, toc_entries),
         ]
     )

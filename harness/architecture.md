@@ -1,4 +1,9 @@
-# Architecture
+# Current release scope
+
+Version 2.0 extends the established DOCX pipeline with project configuration,
+practice reports, layout corrections, and post-render checks. PDF remains
+experimental in 2.0; its conformance work is deferred beyond this release.
+
 
 ## Design Principle
 
@@ -23,9 +28,8 @@ Python include expansion, metadata parsing, validation, and shared numbering
 ```
 
 The renderers share source metadata, labels, citations, validation results, and
-numbering decisions. DOCX is the v1 release output. The PDF branch remains an
-experimental preview until its independent conformance work is completed for
-v2.
+numbering decisions. DOCX is the supported release output. The PDF branch remains an
+experimental preview until its independent conformance work is completed after release 2.0.
 
 ## Component Boundaries
 
@@ -119,8 +123,42 @@ Package resources are shipped inside the Python wheel. Generated `build/` and
 `ssau` is the only V1 profile. Profile resources own university-specific page
 layout and renderer behavior. The current Python validation rules are allowed
 to be hardcoded while they are clearly SSAU-derived and covered by the profile
-checklist. A general external profile schema remains deferred until a second
-real standard exposes stable variation points.
+checklist. A general external university-profile schema remains deferred until a second
+real standard exposes stable variation points. `tex2sto.toml` is a narrow project
+configuration for the existing SSAU renderer, not an arbitrary layout schema.
+
+### Project configuration and practice reports
+
+`config.py` owns immutable validated settings and strict TOML loading. Discovery
+uses the master source directory; explicit paths are supported. Defaults are
+merged with TOML and then explicit CLI/MCP overrides. Relative configured output
+paths use the master directory; explicit CLI/MCP output paths retain their
+working-directory semantics. Unknown sections/keys and invalid values are errors.
+Build overrides do not mutate a caller's project. Source validation and rendering
+receive the same settings object.
+
+The optional combined terminology block is written in the configured position:
+before introduction by default, or after conclusion before sources/appendices.
+Renderers preserve that position rather than moving source text implicitly.
+Table spacing defaults to 1.5. Generated separators default to hyphens; ranges
+use en dashes. Em-dash separators require explicit permission. List wrapping
+returns to the left margin, while first lines retain the paragraph indent.
+
+`\practicetitle` adds typed practice-specific metadata to the shared metadata.
+Common author/institution/program fields remain existing commands. Repeated
+`\practiceassignment` commands form a typed competency/outcome/task matrix.
+The SSAU practice module owns wording and editable service-page layout. The
+matrix has no ordinary body caption or reference and repeats its header when
+paginated. This does not weaken validation of ordinary body tables.
+
+### Post-render page checks
+
+`check-pages` and MCP `check_pages` consume an already rendered PDF using
+Poppler `pdfinfo`. Optional inclusive minimum/maximum limits produce warnings;
+strict mode promotes them. No limits apply by default. The checker neither
+renders DOCX nor trusts cached DOCX page properties. The caller must supply a
+current rendering and select/extract the desired page scope. LibreOffice stays
+outside the production build path.
 
 ## Numbering Policy
 
@@ -139,5 +177,5 @@ the STO-permitted sequence and exclude forbidden Cyrillic letters.
 and Python 3.12. Renderer startup rejects incompatible external versions.
 `uv.lock` freezes Python dependencies. Docker installs the same pins on the
 official TeX Live `medium` multi-architecture image, locked by manifest digest.
-The v1 CI gate builds the image, while DOCX construction and visual inspection
+The CI gate builds the image, while DOCX construction and visual inspection
 remain the release output gates. Native macOS uses the same runtime contract.
