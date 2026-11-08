@@ -58,3 +58,14 @@ The GitHub CI workflow builds the pinned linux/amd64 image and builds all three
 representative DOCX documents inside it. Release assets contain the wheel,
 source distribution, and SHA-256 checksums. Publishing follows green CI for the
 release commit; Word/PNG intermediates remain local QA evidence.
+
+### Distribution acceptance
+
+The final linux/amd64 Docker image built successfully with Python 3.12.11,
+uv 0.12.8, Pandoc 3.11, and TeX Live 2026. All three examples built with strict
+validation inside that image, and its Poppler checker read the rendered
+practice PDF as 14 pages. The wheel and source distribution were built by the
+pinned uv inside Docker. The wheel was reinstalled in a disposable container
+and successfully built the practice report using its packaged resources.
+Both archives were inspected; local source documents and QA output are absent.
+SHA-256 sums are delivered alongside the two release archives.
