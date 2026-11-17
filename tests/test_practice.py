@@ -142,11 +142,12 @@ def test_unnumbered_equations_cannot_be_referenced(project_dir: Path) -> None:
     assert "T2S-E429" in {item.code for item in validate_project(project).items}
 
 
-def test_multiplication_warning_ignores_verbatim(project_dir: Path) -> None:
+@pytest.mark.parametrize("operator", ["*", r"\cdot", "·", "⋅", "∙"])
+def test_multiplication_warning_ignores_verbatim(project_dir: Path, operator: str) -> None:
     project = load_project(project_dir / "main.tex")
-    project.body += r"\begin{verbatim}$a*b$\end{verbatim}"
+    project.expanded_source += rf"\begin{{verbatim}}$a {operator} b$\end{{verbatim}}"
     assert "T2S-W401" not in {item.code for item in validate_project(project).items}
-    project.body += r"\begin{equation*}a*b\end{equation*}"
+    project.expanded_source += rf"\begin{{equation*}}a {operator} b\end{{equation*}}"
     assert "T2S-W401" in {item.code for item in validate_project(project).items}
 
 

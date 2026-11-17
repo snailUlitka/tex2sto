@@ -264,7 +264,9 @@ def _replace_semantic_commands(
         separator = r"\\ " if target == "pdf" else r"\newline "
         rendered = separator.join(lines)
         rendered = (
-            f"\n\n{SYMBOLS_MARKER} {rendered}\n\n" if target == "docx" else rf"\noindent {rendered}"
+            f"\n\n{SYMBOLS_MARKER} {rendered}\n\n"
+            if target == "docx"
+            else rf"{{\par\hangindent=12.5mm\hangafter=1\noindent {rendered}\par}}"
         )
         replacements.append((start, end, rendered))
     for call in find_command_calls(source, "printbibliography", 0):

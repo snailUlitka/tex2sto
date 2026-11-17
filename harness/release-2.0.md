@@ -69,3 +69,25 @@ pinned uv inside Docker. The wheel was reinstalled in a disposable container
 and successfully built the practice report using its packaged resources.
 Both archives were inspected; local source documents and QA output are absent.
 SHA-256 sums are delivered alongside the two release archives.
+
+### Formula review corrections on 2026-11-17
+
+- The user selected juxtaposition or `×` for multiplication; dotted notation
+  now produces `T2S-W401`, with strict promotion and next-line suppression.
+- Symbol explanations keep their first line at the left margin and indent all
+  subsequent lines by 1.25 cm, including wrapped explanations. The DOCX style
+  preserves the single editable paragraph and inline OMML. PDF lowering uses
+  the equivalent scoped hanging indent.
+- Ruff, 141 tests without renderer dependencies, strict checks of all three
+  examples, distribution construction, and knowledge-map links passed.
+- Supplementary QA on the installed Pandoc 3.12.1 passed 158 tests with only
+  the PDF build test deselected. This QA temporarily mocked `_pandoc` in the
+  test process; the production 3.11 version guard and dependency pins remain
+  unchanged. All three DOCX examples built in that process. Visual inspection
+  covered all 13 thesis pages, both laboratory pages, and a two-page laboratory
+  fixture without a variant, with long explanations and a second symbol block.
+- Pinned 3.11 regression remains pending: the official temporary download
+  failed with network errors. The installed TeX Live 2026 fails to initialize
+  its font cache, so PDF construction was not validated. Docker verification
+  was unavailable because its daemon was stopped. This evidence does not
+  establish a new release compatibility claim or replace the Word gate.

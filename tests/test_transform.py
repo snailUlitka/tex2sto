@@ -51,6 +51,14 @@ def test_docx_combines_terminology_and_formats_symbols_and_appendix() -> None:
     assert r"\section*{ПРИЛОЖЕНИЕ А\\Пример программного кода}" in source
 
 
+def test_pdf_symbol_indentation_is_scoped_to_the_explanation() -> None:
+    project = load_project(EXAMPLE)
+    source = renderer_body(project, build_numbering(project), target="pdf")
+
+    assert r"{\par\hangindent=12.5mm\hangafter=1\noindent где $Q$" in source
+    assert r"$N_{total}$ - общее число проверок.\par}" in source
+
+
 def test_structured_bibliography_uses_normalized_compact_separators() -> None:
     item = BibliographyItem(
         key="article",

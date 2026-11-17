@@ -23,6 +23,13 @@ number-unit spaces, and decimal points in Russian prose. `--strict` promotes
 warnings to errors. `% tex2sto: ignore=CODE[,CODE]` suppresses listed warnings
 only on the next non-comment content line.
 
+`T2S-W401` flags multiplication written with `\cdot`, literal `·`, `⋅`, `∙`,
+`*`, or `•` in supported math spans, including abstract math. The project
+convention permits juxtaposition or `\times` (`×`). Detection skips comments
+and verbatim content, reports the
+operator's line once per line even in nested math, and honors next-line warning
+suppression. Decimal points and ellipsis commands do not trigger this warning.
+
 All developer diagnostics are English and carry stable `T2S-E...` or
 `T2S-W...` identifiers.
 
@@ -72,6 +79,8 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 - real paragraphs for title details and assignment fields, with soft line breaks
   limited to intentionally single-paragraph structures;
 - native OMML equations with profile numbering;
+- symbol explanations with a non-indented first line, 1.25 cm indents on all
+  subsequent lines, and preserved inline OMML;
 - bookmarks and `NUMPAGES`/`PAGEREF` fields;
 - Russian list formats;
 - media relationships;
