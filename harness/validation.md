@@ -132,3 +132,11 @@ report post-render warnings through `check_pages`.
 
 The release remains DOCX-focused. Existing PDF preview tests are retained; the
 previous roadmap's v2 PDF conformance gate is deferred beyond release 2.0.
+
+## Version 2.1 release verification
+
+CI also installs the frozen development dependencies inside the pinned image
+and runs the DOCX tests there. Only the optional PDF construction test is
+deselected. The wheel, source distribution, and three strict DOCX example
+builds are retained as a commit-scoped GitHub Actions artifact for release QA.
+See [release-2.1.md](release-2.1.md) for scope and acceptance evidence.

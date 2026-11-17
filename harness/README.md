@@ -17,6 +17,7 @@ It is intentionally separate from the Russian user documentation in `docs/`.
   for STO 02068410-004-2018. It is not a replacement for the source standard.
 
 - [release-2.0.md](release-2.0.md) records the approved 2.0 scope and acceptance evidence.
+- [release-2.1.md](release-2.1.md) records the formula conventions and 2.1 release gates.
 
 ## Agent Operating Policy
 

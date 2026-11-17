@@ -807,7 +807,7 @@ wheels = [
 
 [[package]]
 name = "tex2sto"
-version = "2.0.0"
+version = "2.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },

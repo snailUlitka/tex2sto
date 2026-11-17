@@ -1,8 +1,9 @@
 # Current release scope
 
-Version 2.0 extends the established DOCX pipeline with project configuration,
-practice reports, layout corrections, and post-render checks. PDF remains
-experimental in 2.0; its conformance work is deferred beyond this release.
+Version 2.1 retains the established DOCX pipeline with project configuration,
+practice reports, layout corrections, and post-render checks. It adds the
+user-selected formula conventions recorded in release-2.1.md. PDF remains
+experimental in 2.1; its conformance work is deferred beyond this release.
 
 
 ## Design Principle
