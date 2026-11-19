@@ -11,7 +11,7 @@ IGNORE_RE = re.compile(r"%\s*tex2sto:\s*ignore=([A-Za-z0-9_.,-]+)\s*$")
 UNITS = "мм|см|м|км|мг|г|кг|с|мин|ч|Гц|кГц|МГц|В|А|Вт|Па|К|°C"
 
 
-def _suppressed_lines(source: str) -> dict[int, set[str]]:
+def suppressed_lines(source: str) -> dict[int, set[str]]:
     suppressed: dict[int, set[str]] = {}
     pending: set[str] = set()
     for line_number, line in enumerate(source.splitlines(), start=1):
@@ -37,7 +37,7 @@ def _plain_text_line(line: str) -> str:
 def check_prose(
     source: str, *, path: Path, diagnostics: DiagnosticBag, allow_em_dash: bool = False
 ) -> None:
-    suppressed = _suppressed_lines(source)
+    suppressed = suppressed_lines(source)
     checks: tuple[tuple[str, re.Pattern[str], str], ...] = (
         (
             "T2S-W101",

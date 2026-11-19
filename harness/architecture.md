@@ -1,8 +1,9 @@
 # Current release scope
 
-Version 2.0 extends the established DOCX pipeline with project configuration,
-practice reports, layout corrections, and post-render checks. PDF remains
-experimental in 2.0; its conformance work is deferred beyond this release.
+Version 2.1 retains the established DOCX pipeline with project configuration,
+practice reports, layout corrections, and post-render checks. It adds the
+user-selected formula conventions recorded in release-2.1.md. PDF remains
+experimental in 2.1; its conformance work is deferred beyond this release.
 
 
 ## Design Principle
@@ -69,6 +70,12 @@ breaks are reserved for structures that must remain within one paragraph, such
 as symbol explanations and the two-line appendix heading. Table-grid widths are
 balanced from visible cell content before a longtable is split. The processor
 patches Pandoc output rather than constructing the package from scratch.
+
+The `Tex2Sto Symbols` style keeps the first line at the left margin and indents
+all subsequent lines by 1.25 cm, including soft breaks and automatic wrapping.
+It uses a 1.25 cm left indent with an equal hanging indent, preserving inline
+OMML inside one editable paragraph. PDF lowering scopes the equivalent hanging
+indent to the explanation paragraph.
 
 The laboratory cover uses dedicated `Tex2Sto Lab ...` paragraph styles and
 separate editable paragraphs for each participant field. Its city/year lives

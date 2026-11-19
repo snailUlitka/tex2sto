@@ -122,6 +122,9 @@ def main() -> None:
             first_line=name == "Tex2Sto Abstract Keywords",
             alignment=alignment,
         )
+    symbols_format = document.styles["Tex2Sto Symbols"].paragraph_format
+    symbols_format.left_indent = Mm(12.5)
+    symbols_format.first_line_indent = Mm(-12.5)
     continuation_style = _style(
         document,
         "Tex2Sto Table Continuation",

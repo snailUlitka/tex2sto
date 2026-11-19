@@ -2,7 +2,7 @@
 
 ## Требования
 
-Версия 2.0 закрепляет следующие версии:
+Версия 2.1 закрепляет следующие версии:
 
 - Python 3.12.11;
 - uv 0.12.x;
@@ -39,23 +39,23 @@ MCP-клиент. Сервер использует `stdio`; [пример на�
 
 Экспериментальный предварительный PDF по флагу `--pdf` требует TeX Live 2026 с
 LuaLaTeX. Для корректного шрифта ему также нужен лицензированный Times New Roman;
-этот формат не входит в гарантии совместимости версии 2.0.
+этот формат не входит в гарантии совместимости версии 2.1.
 
 ## Docker
 
 Образ содержит закреплённые Python, Pandoc и TeX Live:
 
 ```sh
-docker build -t tex2sto:2.0.0 .
+docker build -t tex2sto:2.1.0 .
 ```
 
 Рабочий каталог монтируется в `/work`, поэтому результаты остаются на машине:
 
 ```sh
-docker run --rm -v "$PWD:/work" tex2sto:2.0.0 \
+docker run --rm -v "$PWD:/work" tex2sto:2.1.0 \
   check examples/master-thesis/main.tex --strict
 
-docker run --rm -v "$PWD:/work" tex2sto:2.0.0 \
+docker run --rm -v "$PWD:/work" tex2sto:2.1.0 \
   build examples/master-thesis/main.tex -o build/example
 ```
 

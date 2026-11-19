@@ -18,7 +18,7 @@ from tex2sto.dialect.syntax import (
 )
 from tex2sto.model import SourceProject
 from tex2sto.model.numbering import APPENDIX_LETTERS
-from tex2sto.validation.prose import check_prose
+from tex2sto.validation.prose import check_prose, suppressed_lines
 
 METADATA_COMMANDS = (
     set(SINGLE_COMMANDS)
@@ -220,6 +220,50 @@ def _mask_verbatim(source: str) -> str:
     return replace_spans(source, replacements)
 
 
+def _math_spans(source: str) -> list[tuple[int, int]]:
+    source = mask_comments(source)
+    spans = [
+        (start, end)
+        for environment in MATH_ENVIRONMENTS
+        for start, end, _ in find_environment(source, environment)
+    ]
+    spans.extend(
+        (match.start(), match.end())
+        for pattern in (r"(?<!\\)\$(?:\\.|[^$])*\$", r"\\\[.*?\\\]")
+        for match in re.finditer(pattern, source, flags=re.DOTALL)
+    )
+    return spans
+
+
+def _validate_multiplication(project: SourceProject, diagnostics: DiagnosticBag) -> None:
+    source = project.expanded_source
+    math_source = mask_comments(_mask_verbatim(source))
+    math_spans = _math_spans(math_source)
+    math_source = replace_spans(
+        math_source,
+        [
+            (call.start, call.end, " " * (call.end - call.start))
+            for command in ("begin", "end")
+            for call in find_command_calls(math_source, command, 1)
+        ],
+    )
+    suppressed = suppressed_lines(source)
+    warned_lines: set[int] = set()
+    for match in re.finditer(r"\\cdot(?![A-Za-z@])|[*•·⋅∙]", math_source):
+        if not any(start <= match.start() < end for start, end in math_spans):
+            continue
+        line = line_number(source, match.start())
+        if line in warned_lines or "T2S-W401" in suppressed.get(line, set()):
+            continue
+        warned_lines.add(line)
+        diagnostics.warning(
+            "T2S-W401",
+            "use \\times or omit the multiplication sign instead of a dot, asterisk, or bullet",
+            path=project.master,
+            line=line,
+        )
+
+
 def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> None:
     source = _mask_verbatim(project.expanded_source)
     for command, line in control_words(source):
@@ -243,16 +287,7 @@ def _validate_commands(project: SourceProject, diagnostics: DiagnosticBag) -> No
                 path=project.master,
                 line=call.line,
             )
-    math_spans = [
-        (start, end)
-        for environment in MATH_ENVIRONMENTS
-        for start, end, _ in find_environment(source, environment)
-    ]
-    math_spans.extend(
-        (match.start(), match.end())
-        for pattern in (r"(?<!\\)\$(?:\\.|[^$])*\$", r"\\\[.*?\\\]")
-        for match in re.finditer(pattern, source, flags=re.DOTALL)
-    )
+    math_spans = _math_spans(source)
     masked = mask_comments(source)
     for match in CONTROL_WORD_RE.finditer(masked):
         command = match.group(1)
@@ -582,23 +617,6 @@ def _validate_objects(project: SourceProject, diagnostics: DiagnosticBag) -> Non
                     "use equation or align for referenced equations",
                 )
     symbol_environments = find_environment(source, "symbols")
-    math_source = _mask_verbatim(source)
-    math_fragments = [
-        (start, content)
-        for environment in ("equation", "equation*", "align", "align*")
-        for start, _, content in find_environment(math_source, environment)
-    ]
-    math_fragments.extend(
-        (match.start(), match.group()) for match in re.finditer(r"\$[^$\n]+\$", math_source)
-    )
-    for start, content in math_fragments:
-        if re.search(r"[*•]", mask_comments(content)):
-            diagnostics.warning(
-                "T2S-W401",
-                "use a mathematical multiplication sign instead of an asterisk or bullet",
-                path=project.master,
-                line=line_number(source, start),
-            )
     for start, _, content in symbol_environments:
         symbols = find_command_calls(content, "symbol", 2)
         if not symbols:
@@ -703,6 +721,7 @@ def _validate_bibliography(project: SourceProject, diagnostics: DiagnosticBag) -
 def validate_project(project: SourceProject) -> DiagnosticBag:
     diagnostics = DiagnosticBag()
     _validate_commands(project, diagnostics)
+    _validate_multiplication(project, diagnostics)
     _validate_metadata(project, diagnostics)
     _validate_structure(project, diagnostics)
     _validate_objects(project, diagnostics)

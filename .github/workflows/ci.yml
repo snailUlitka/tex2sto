@@ -55,8 +55,27 @@ jobs:
       - name: Build Docker image
         run: docker build --platform linux/amd64 --tag tex2sto:ci .
 
+      - name: Test DOCX in the pinned image
+        run: |
+          docker run --rm --entrypoint /bin/sh -v "$PWD:/work" tex2sto:ci -ec '
+            cd /app
+            uv sync --frozen --group dev
+            /app/.venv/bin/pytest /work/tests -k "not pdf_is_independently_built_as_a4"
+          '
+
       - name: Build representative DOCX files in the pinned image
         run: |
           docker run --rm -v "$PWD:/work" tex2sto:ci build examples/master-thesis/main.tex -o build/ci/master --strict
           docker run --rm -v "$PWD:/work" tex2sto:ci build examples/lab-report/main.tex -o build/ci/lab --strict
           docker run --rm -v "$PWD:/work" tex2sto:ci build examples/practice-report/main.tex -o build/ci/practice --strict
+
+      - name: Upload release verification artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-verification-${{ github.sha }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            build/ci/**/*.docx
+          if-no-files-found: error
+          retention-days: 14

@@ -223,6 +223,13 @@ unnumbered equations may have immediate symbol explanations, separated by
 semicolons and ending in a period. Interrupted longtable parts omit their
 closing bottom border.
 
+The user further selected juxtaposition or `×` for multiplication throughout
+the document. Dotted multiplication produces `T2S-W401` rather than an immediate
+error; strict mode promotes it. This project convention is broader than the
+STO's explicit cross-sign requirement at a multiplication line break. Symbol
+explanations start with a non-indented `где` line; every subsequent line,
+including wrapped text, is indented 1.25 cm from the left margin.
+
 Practice-specific cover fields and competency matrices are structured metadata.
 Required competencies and actual attainment are authored and reviewed by humans.
 Post-render page warnings count the supplied PDF scope, with no default bounds.

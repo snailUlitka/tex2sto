@@ -7,6 +7,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
+from docx import Document
 
 from tex2sto.build import BuildOptions, build_project
 from tex2sto.dialect import load_project
@@ -119,6 +120,22 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert '<w:tblW w:type="dxa" w:w="9355"/>' in document
         assert re.search(r"<w:jc w:val=\"right\"/>.*?<w:t>\(1\)</w:t>", document)
         assert any(name.startswith("word/media/") for name in package.namelist())
+
+    paragraphs = [
+        paragraph
+        for paragraph in Document(docx_path).paragraphs
+        if paragraph.style.name == "Tex2Sto Symbols"
+    ]
+    assert len(paragraphs) == 1
+    symbols = paragraphs[0]
+    assert symbols.text.startswith("где ")
+    assert len(symbols._p.xpath(".//w:br")) == 2
+    assert len(symbols._p.xpath(".//m:oMath")) == 3
+    assert symbols.paragraph_format.left_indent is None
+    assert symbols.paragraph_format.first_line_indent is None
+    formatting = symbols.style.paragraph_format
+    assert formatting.left_indent.twips == 709
+    assert formatting.left_indent + formatting.first_line_indent == 0
 
 
 @pytest.mark.skipif(

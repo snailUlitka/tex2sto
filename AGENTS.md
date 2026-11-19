@@ -5,7 +5,7 @@
 tex2sto is a Python CLI that compiles a deliberately restricted LaTeX dialect
 into editable DOCX documents that conform to Samara University
 STO 02068410-004-2018. DOCX is the supported release output. The optional PDF path remains an
-experimental preview in version 2.0.
+experimental preview in version 2.1.
 
 The application is implemented as a uv-managed Python 3.12 application. Pandoc 3.11 produces
 DOCX using resources owned by the `ssau` profile. LuaLaTeX from TeX Live 2026
@@ -89,5 +89,5 @@ git diff --check
 DOCX renderer changes require structural output checks and visual inspection.
 DOCX behavior that depends on fields must also be verified in current Microsoft
 Word before a release compatibility claim. PDF conformance and mandatory PDF
-renderer coverage are deferred beyond version 2.0. Verify that links in this file,
+renderer coverage are deferred beyond version 2.1. Verify that links in this file,
 `harness/README.md`, the root README, and `docs/README.md` resolve.

@@ -94,7 +94,7 @@ def get_dialect_docs() -> DialectDocsResult:
 @server.resource(
     DIALECT_URI,
     name="tex2sto dialect v2",
-    description="Complete documentation of the supported tex2sto 2.0 LaTeX dialect.",
+    description="Complete documentation of the supported tex2sto 2.1 LaTeX dialect.",
     mime_type="text/markdown",
 )
 def dialect_documentation() -> str:
