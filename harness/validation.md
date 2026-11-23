@@ -81,7 +81,10 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
 - native OMML equations with profile numbering;
 - symbol explanations with a non-indented first line, 1.25 cm indents on all
   subsequent lines, and preserved inline OMML;
-- bookmarks and `NUMPAGES`/`PAGEREF` fields;
+- bookmarks, `NUMPAGES`, and one native `TOC` enclosing the cached entries and
+  their nested `PAGEREF` fields in practice and thesis DOCX files;
+- outline levels and styles for numbered and structural contents entries,
+  including the appendix label and the separate title paragraph;
 - Russian list formats;
 - media relationships;
 - content-weighted table-grid widths;
@@ -102,11 +105,21 @@ Also inspect both pages of the laboratory example and a cover without a
 variant, checking course/name wrapping, the bottom city/year, and the first
 body page's number. Long-field examples must not collide with the footer.
 
+Build and render both practice forms. Compare the 6132/6133 cover and assignment
+with the department template. Check a multipage matrix for repeated headings,
+separate paragraphs within cells, readable wrapping with long supervisor
+details, signature captions, and the transition to the abstract.
+
 Before claiming a release compatible with Word, open the representative DOCX
 in a current Microsoft Word for macOS build, update all fields, and verify
 styles, editability, contents, equation layout, explicit table continuations,
 and pagination. The V1 representative document passed this gate after replacing
 the non-working repeated-row conditional field with explicit table segments.
+On copies of the practice and thesis examples, add a heading using a supported
+outline level, rename another, and remove a third. Use Word's **Update entire
+table** command. Confirm that the changed entries, hyperlinks, and page numbers
+are correct and that front matter and the appendix title are excluded. Update
+again if the new contents changes pagination.
 
 ## Dependency Upgrade Gate
 
@@ -121,9 +134,10 @@ upgrade gates remain deferred beyond version 2.0.
 Run strict checks and builds for `examples/practice-report/main.tex` in addition
 to the established examples. Configuration fixtures cover empty/absent files,
 unknown keys, invalid types/ranges/dates, override precedence, explicit files,
-and terminology placement. Practice fixtures cover missing/mixed/misplaced
-metadata, required assignment rows, editable cover/competency output, repeated
-headers, styles, and page footers. Check numbered equations following unnumbered
+terminology placement, and practice form selection. Practice fixtures cover
+missing/mixed/misplaced metadata, required assignment rows, plain-text cell
+paragraphs, both covers, repeated headers, styles, and page footers. Check
+numbered equations following unnumbered
 ones, immediate symbol explanations, generated punctuation, list geometry,
 table spacing, and continuation borders. Check page limits on actual rendered
 PDFs, both boundaries, absent limits, failure to parse a PDF, and strict mode.

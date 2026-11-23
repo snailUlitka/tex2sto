@@ -8,6 +8,7 @@ from zipfile import ZipFile
 
 import pytest
 from docx import Document
+from docx.oxml.ns import qn
 
 from tex2sto.build import BuildOptions, build_project
 from tex2sto.dialect import load_project
@@ -57,10 +58,6 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert "где" in document
         assert "- доля пройденных проверок;" in document
         assert "- общее число проверок." in document
-        assert re.search(
-            r"ПРИЛОЖЕНИЕ А</w:t>.*?<w:br/>.*?Пример программного кода</w:t>",
-            document,
-        )
         for text in (
             "по направлению подготовки",
             "Тема:",
@@ -121,9 +118,43 @@ def test_docx_is_editable_and_profiled(tmp_path: Path) -> None:
         assert re.search(r"<w:jc w:val=\"right\"/>.*?<w:t>\(1\)</w:t>", document)
         assert any(name.startswith("word/media/") for name in package.namelist())
 
+    word = Document(docx_path)
+    toc_instructions = word.element.body.xpath(
+        ".//w:instrText[starts-with(normalize-space(.), 'TOC ')]/text()"
+    )
+    assert [instruction.strip() for instruction in toc_instructions] == [
+        r'TOC \o "1-4" \h \z \u'
+    ]
+    entries = [p for p in word.paragraphs if re.fullmatch(r"TOC[1-4]", p.style.style_id)]
+    assert entries
+    assert all(p._p.xpath('./w:r/w:instrText[contains(., "PAGEREF")]') for p in entries)
+    assert entries[0]._p.xpath("./w:r[1]/w:fldChar/@w:fldCharType") == ["begin"]
+    assert entries[0]._p.xpath("./w:r[3]/w:fldChar/@w:fldCharType") == ["separate"]
+    assert entries[-1]._p.xpath("./w:r[last() - 1]/w:fldChar/@w:fldCharType") == ["end"]
+    assert entries[-1]._p.xpath("./w:r[last()]/w:fldChar/@w:fldCharType") == ["end"]
+    assert len(word.element.body.xpath('.//w:instrText[contains(., "PAGEREF")]')) == len(entries)
+    assert all(
+        not entry.text.startswith(("ЗАДАНИЕ", "РЕФЕРАТ", "СОДЕРЖАНИЕ"))
+        for entry in entries
+    )
+    for level in range(1, 5):
+        outline = word.styles[f"Tex2Sto Heading {level}"].element.pPr.find(qn("w:outlineLvl"))
+        assert outline.get(qn("w:val")) == str(level - 1)
+        assert word.styles[f"toc {level}"].base_style.name == f"Tex2Sto TOC {level}"
+    structural = word.styles["Tex2Sto Body Structural Heading"]
+    assert structural.font.all_caps is True
+    assert structural.element.pPr.find(qn("w:outlineLvl")).get(qn("w:val")) == "0"
+    body = word.paragraphs
+    appendix = next(i for i, p in enumerate(body) if p.text == "Приложение А")
+    assert body[appendix].style == structural
+    assert body[appendix + 1].text == "Пример программного кода"
+    assert body[appendix + 1].style.name == "Tex2Sto Appendix Title"
+    assert body[appendix + 1].style.element.pPr.find(qn("w:outlineLvl")) is None
+    assert entries[-1].text == "Приложение А\t0"
+
     paragraphs = [
         paragraph
-        for paragraph in Document(docx_path).paragraphs
+        for paragraph in body
         if paragraph.style.name == "Tex2Sto Symbols"
     ]
     assert len(paragraphs) == 1

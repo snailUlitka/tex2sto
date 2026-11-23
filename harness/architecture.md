@@ -62,14 +62,22 @@ Pandoc parses supported prose, headings, lists, tables, images, and math. The
 supplies A4 setup, margins, fonts, footer, and the `Tex2Sto ...` style family.
 
 Focused Python post-processing adds the title and assignment pages with real
-Word paragraphs for logically separate fields, abstract statistics, editable
-page fields and contents entries, bookmarks, editable equation rows with
+Word paragraphs for logically separate fields, abstract statistics, live
+Word fields, bookmarks, editable equation rows with
 symmetric side columns, Russian list numbering, repeating table rows, and
 explicit continuation segments at validated `\tablebreak` points. Soft line
-breaks are reserved for structures that must remain within one paragraph, such
-as symbol explanations and the two-line appendix heading. Table-grid widths are
+breaks are reserved for structures such as symbol explanations that must remain
+within one paragraph. Table-grid widths are
 balanced from visible cell content before a longtable is split. The processor
 patches Pandoc output rather than constructing the package from scratch.
+
+Practice and thesis DOCX files carry a single complex TOC field. The initial
+result contains entries and nested page references formed from body headings at
+outline levels 1–4. Word rebuilds the result from the heading styles and applies
+its built-in TOC styles, which inherit the corresponding Tex2Sto styles.
+Structural headings store sentence-case text and display uppercase through their
+style. The appendix label carries outline level 1 and keeps its following title
+paragraph with it. Front matter and the appendix title have no outline level.
 
 The `Tex2Sto Symbols` style keeps the first line at the left margin and indents
 all subsequent lines by 1.25 cm, including soft breaks and automatic wrapping.
@@ -153,10 +161,13 @@ returns to the left margin, while first lines retain the paragraph indent.
 
 `\practicetitle` adds typed practice-specific metadata to the shared metadata.
 Common author/institution/program fields remain existing commands. Repeated
-`\practiceassignment` commands form a typed competency/outcome/task matrix.
-The SSAU practice module owns wording and editable service-page layout. The
-matrix has no ordinary body caption or reference and repeats its header when
-paginated. This does not weaken validation of ordinary body tables.
+`\practiceassignment` commands form a typed competency/outcome/task matrix
+with plain-text paragraphs in each cell. The SSAU practice module owns wording
+and editable front matter. Projects select the department's 6132/6133 DOCX
+form through `layout.practice_template`. The generic form is the default
+and also serves the PDF preview. The department matrix uses the template's
+column proportions fitted to the SSAU text width and single spacing. The matrix
+repeats its header on later pages and is distinct from referenced body tables.
 
 ### Post-render page checks
 

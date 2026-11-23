@@ -7,20 +7,29 @@ from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
 
-def add_field(paragraph: Paragraph, instruction: str, placeholder: str = "0") -> None:
-    run = paragraph.add_run()
-    begin = OxmlElement("w:fldChar")
-    begin.set(qn("w:fldCharType"), "begin")
+def _field_char(paragraph: Paragraph, kind: str) -> None:
+    node = OxmlElement("w:fldChar")
+    node.set(qn("w:fldCharType"), kind)
+    paragraph.add_run()._r.append(node)
+
+
+def begin_field(paragraph: Paragraph, instruction: str) -> None:
+    _field_char(paragraph, "begin")
     instruction_node = OxmlElement("w:instrText")
     instruction_node.set(qn("xml:space"), "preserve")
-    instruction_node.text = instruction
-    separate = OxmlElement("w:fldChar")
-    separate.set(qn("w:fldCharType"), "separate")
-    text = OxmlElement("w:t")
-    text.text = placeholder
-    end = OxmlElement("w:fldChar")
-    end.set(qn("w:fldCharType"), "end")
-    run._r.extend((begin, instruction_node, separate, text, end))
+    instruction_node.text = f" {instruction} "
+    paragraph.add_run()._r.append(instruction_node)
+    _field_char(paragraph, "separate")
+
+
+def end_field(paragraph: Paragraph) -> None:
+    _field_char(paragraph, "end")
+
+
+def add_field(paragraph: Paragraph, instruction: str, placeholder: str = "0") -> None:
+    begin_field(paragraph, instruction)
+    paragraph.add_run(placeholder)
+    end_field(paragraph)
 
 
 def set_update_fields(document) -> None:
@@ -28,7 +37,9 @@ def set_update_fields(document) -> None:
     node = settings.find(qn("w:updateFields"))
     if node is None:
         node = OxmlElement("w:updateFields")
-        settings.append(node)
+        settings.insert_element_before(
+            node, "w:hdrShapeDefaults", "w:footnotePr", "w:endnotePr", "w:compat"
+        )
     node.set(qn("w:val"), "true")
 
 

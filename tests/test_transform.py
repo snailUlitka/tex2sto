@@ -4,7 +4,13 @@ from pathlib import Path
 
 from tex2sto.dialect import load_project
 from tex2sto.model import BibliographyItem, build_numbering
-from tex2sto.transform import TABLE_BREAK_MARKER, _format_source, renderer_body
+from tex2sto.transform import (
+    APPENDIX_TITLE_MARKER,
+    STRUCTURAL_HEADING_MARKER,
+    TABLE_BREAK_MARKER,
+    _format_source,
+    renderer_body,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples" / "master-thesis" / "main.tex"
@@ -42,13 +48,14 @@ def test_docx_combines_terminology_and_formats_symbols_and_appendix() -> None:
     project = load_project(EXAMPLE)
     source = renderer_body(project, build_numbering(project), target="docx")
 
-    assert source.count("ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ") == 1
+    assert source.count("Определения, обозначения и сокращения") == 1
     assert "ТЕРМИНЫ И ОПРЕДЕЛЕНИЯ" not in source
     assert "ПЕРЕЧЕНЬ СОКРАЩЕНИЙ И ОБОЗНАЧЕНИЙ" not in source
     assert "TEX2STO_SYMBOLS где $Q$ - доля пройденных проверок;" in source
     assert "$N_{passed}$ - число успешных проверок;" in source
     assert "$N_{total}$ - общее число проверок." in source
-    assert r"\section*{ПРИЛОЖЕНИЕ А\\Пример программного кода}" in source
+    assert rf"\section*{{{STRUCTURAL_HEADING_MARKER} Приложение А}}" in source
+    assert rf"\section*{{{APPENDIX_TITLE_MARKER} Пример программного кода}}" in source
 
 
 def test_pdf_symbol_indentation_is_scoped_to_the_explanation() -> None:

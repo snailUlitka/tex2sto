@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from tex2sto.dialect.lab_title import _plain_text
-from tex2sto.dialect.syntax import parse_named_arguments
+from tex2sto.dialect.syntax import mask_comments, parse_named_arguments
 from tex2sto.errors import SourceError
 from tex2sto.model.document import PracticeAssignment, PracticeTitle
 
@@ -56,8 +57,16 @@ def parse_practice_title(content: str) -> PracticeTitle:
     return PracticeTitle(**{name.replace("-", "_"): value for name, value in values.items()})
 
 
+def _cell_paragraphs(value: str) -> tuple[str, ...]:
+    # A comment-only line does not introduce a paragraph break.
+    lines = zip(value.split("\n"), mask_comments(value).split("\n"), strict=True)
+    text = "\n".join(masked for raw, masked in lines if masked.strip() or not raw.strip())
+    paragraphs = (plain(block) for block in re.split(r"\n\s*\n", text.strip()))
+    return tuple(paragraph for paragraph in paragraphs if paragraph)
+
+
 def parse_practice_assignment(args: tuple[str, ...]) -> PracticeAssignment:
-    values = [plain(value) for value in args]
+    values = [_cell_paragraphs(value) for value in args]
     if not all(values):
         raise SourceError("practiceassignment requires nonempty competency, outcomes, and task")
     return PracticeAssignment(*values)

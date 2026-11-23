@@ -30,6 +30,8 @@ def test_empty_and_absent_configuration_have_identical_defaults(tmp_path: Path) 
         "[numbering]\nthreshold = 0",
         "[layout]\ntable_line_spacing = nan",
         "[layout]\ntable_line_spacing = 0.5",
+        '[layout]\npractice_template = "6132"',
+        "[layout]\npractice_template = 6132",
         '[structure]\nterminology_position = "anywhere"',
         '[punctuation]\nseparator = "em-dash"',
         "[pages]\nminimum = 30\nmaximum = 20",

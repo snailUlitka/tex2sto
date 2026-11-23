@@ -183,6 +183,9 @@ def test_lab_docx_has_editable_cover_and_no_thesis_front_matter(
     assert all(not p._p.xpath(".//w:br") for p in cover)
     assert all(not p._p.xpath(".//w:drawing | .//w:tbl") for p in cover)
     assert not document.element.body.xpath(".//w:instrText[contains(., 'PAGEREF')]")
+    assert not document.element.body.xpath(
+        ".//w:instrText[starts-with(normalize-space(.), 'TOC ')]"
+    )
     section = document.sections[0]
     assert section.different_first_page_header_footer
     footer = section.first_page_footer

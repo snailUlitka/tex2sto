@@ -95,9 +95,9 @@ class PracticeTitle:
 
 @dataclass(frozen=True, slots=True)
 class PracticeAssignment:
-    competency: str
-    outcomes: str
-    task: str
+    competency: tuple[str, ...]
+    outcomes: tuple[str, ...]
+    task: tuple[str, ...]
 
 
 @dataclass(slots=True)

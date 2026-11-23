@@ -13,6 +13,8 @@ PAGE_BREAK_MARKER = "TEX2STO_PAGE_BREAK"
 TABLE_BREAK_MARKER = "TEX2STO_TABLE_BREAK"
 SYMBOLS_MARKER = "TEX2STO_SYMBOLS"
 EQUATION_NUMBER_MARKER = "TEX2STO_EQ_NUMBER_"
+STRUCTURAL_HEADING_MARKER = "TEX2STO_STRUCTURAL_HEADING"
+APPENDIX_TITLE_MARKER = "TEX2STO_APPENDIX_TITLE"
 
 
 def _object_number(index: NumberingIndex, label: str | None) -> str:
@@ -184,8 +186,8 @@ def _format_source(item: BibliographyItem, separator: str = "-") -> str:
 
 def _structural(title: str, *, target: str) -> str:
     if target == "pdf":
-        return f"\\texstructural{{{title}}}"
-    return f"\\section*{{{title}}}"
+        return f"\\texstructural{{{title.upper()}}}"
+    return f"\\section*{{{STRUCTURAL_HEADING_MARKER} {title}}}"
 
 
 def _bibliography(project: SourceProject, index: NumberingIndex, *, target: str) -> str:
@@ -196,7 +198,7 @@ def _bibliography(project: SourceProject, index: NumberingIndex, *, target: str)
         f"{number} {_format_source(by_key[key], project.settings.separator_text)}"
         for number, key in enumerate(ordered, start=1)
     ]
-    title = _structural("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", target=target)
+    title = _structural("Список использованных источников", target=target)
     heading = f"\n\n{PAGE_BREAK_MARKER}\n\n{title}"
     return heading + "\n\n" + "\n\n".join(lines)
 
@@ -210,10 +212,11 @@ def _replace_semantic_commands(
 ) -> str:
     replacements: list[tuple[int, int, str]] = []
     headings = {
-        "introduction": f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural('ВВЕДЕНИЕ', target=target)}",
-        "conclusion": f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural('ЗАКЛЮЧЕНИЕ', target=target)}",
+        "introduction": "Введение",
+        "conclusion": "Заключение",
     }
-    for command, replacement in headings.items():
+    for command, title in headings.items():
+        replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural(title, target=target)}"
         replacements.extend(
             (call.start, call.end, replacement) for call in find_command_calls(source, command, 0)
         )
@@ -228,7 +231,7 @@ def _replace_semantic_commands(
     for position, (start, end) in enumerate(terminology_markers):
         replacement = ""
         if position == 0:
-            title = "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ"
+            title = "Определения, обозначения и сокращения"
             replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n{_structural(title, target=target)}"
         replacements.append((start, end, replacement))
     appendix_calls = find_command_calls(source, "appendix", 2)
@@ -238,7 +241,8 @@ def _replace_semantic_commands(
         if target == "pdf":
             appendix_heading = f"\\texappendix{{{letter}}}{{{title}}}"
         else:
-            appendix_heading = f"\\section*{{ПРИЛОЖЕНИЕ {letter}\\\\{title}}}"
+            appendix_label = _structural(f"Приложение {letter}", target=target)
+            appendix_heading = f"{appendix_label}\n\n\\section*{{{APPENDIX_TITLE_MARKER} {title}}}"
         replacement = f"\n\n{PAGE_BREAK_MARKER}\n\n{appendix_heading}"
         replacements.append((call.start, call.end, replacement))
     for call in find_command_calls(source, "definition", 2):

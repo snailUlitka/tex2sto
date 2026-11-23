@@ -18,30 +18,28 @@ from docx.shared import Mm, Pt, RGBColor
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.profiles.ssau.lab_title import docx_title_page, report_name
-from tex2sto.profiles.ssau.practice import docx_front_matter
+from tex2sto.profiles.ssau.practice import docx_department_front_matter, docx_front_matter
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
+    begin_field,
+    end_field,
     repeat_table_row,
     set_update_fields,
 )
 from tex2sto.renderers.tools import require_tool, require_version, run_tool
 from tex2sto.transform import (
+    APPENDIX_TITLE_MARKER,
     EQUATION_NUMBER_MARKER,
     PAGE_BREAK_MARKER,
+    STRUCTURAL_HEADING_MARKER,
     SYMBOLS_MARKER,
     TABLE_BREAK_MARKER,
     renderer_body,
 )
 
 PROFILE = files("tex2sto") / "profiles" / "ssau" / "pandoc"
-
-STRUCTURAL_TOC_TITLES = {
-    "ВВЕДЕНИЕ": "Введение",
-    "ЗАКЛЮЧЕНИЕ": "Заключение",
-    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ": ("Определения, обозначения и сокращения"),
-    "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ": "Список использованных источников",
-}
+TOC_DEPTH = 4
 
 
 def _pandoc() -> str:
@@ -159,11 +157,15 @@ def _abstract_and_toc(
     project: SourceProject,
     index: NumberingIndex,
     toc_entries: list[tuple[int, str, str]],
+    *,
+    start_on_new_page: bool,
 ) -> list:
     counts = {kind: sum(item.kind is kind for item in index.objects) for kind in ObjectKind}
     appendices = len(find_command_calls(project.body, "appendix", 2))
     elements = []
     heading = _front_paragraph(document, "РЕФЕРАТ", style="Tex2Sto Structural Heading")
+    if start_on_new_page:
+        heading.paragraph_format.page_break_before = True
     elements.append(heading._p)
     stats = _front_paragraph(document)
     stats.add_run("Работа: ")
@@ -186,12 +188,18 @@ def _abstract_and_toc(
     elements.append(abstract._p)
     toc_heading = _front_paragraph(document, "СОДЕРЖАНИЕ", style="Tex2Sto Structural Heading")
     elements.append(toc_heading._p)
-    for level, title, bookmark in toc_entries:
-        entry = _front_paragraph(document, style=f"Tex2Sto TOC {level}")
+    entries = [_front_paragraph(document, style=f"toc {level}") for level, _, _ in toc_entries]
+    if not entries:
+        entries.append(_front_paragraph(document, style="toc 1"))
+
+    # The cached paragraphs are the result of a single replaceable Word field.
+    begin_field(entries[0], rf'TOC \o "1-{TOC_DEPTH}" \h \z \u')
+    for entry, (_, title, bookmark) in zip(entries, toc_entries, strict=False):
         entry.add_run(title)
         entry.add_run("\t")
-        add_field(entry, f"PAGEREF {bookmark} \\h", "0")
-        elements.append(entry._p)
+        add_field(entry, f"PAGEREF {bookmark} \\h")
+    end_field(entries[-1])
+    elements.extend(entry._p for entry in entries)
     return elements
 
 
@@ -224,19 +232,21 @@ def _apply_styles(document, project: SourceProject) -> None:
     document.styles["Tex2Sto Table Continuation"].font.color.rgb = RGBColor(0, 0, 0)
     for paragraph in document.paragraphs:
         text = paragraph.text.strip()
+        style = paragraph.style.name
         if text == PAGE_BREAK_MARKER:
             paragraph.clear()
             paragraph.add_run().add_break(WD_BREAK.PAGE)
             paragraph.style = "Tex2Sto Body"
-        elif text in {
-            "ВВЕДЕНИЕ",
-            "ЗАКЛЮЧЕНИЕ",
-            "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ",
-            "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
-        } or text.startswith("ПРИЛОЖЕНИЕ "):
-            paragraph.style = "Tex2Sto Structural Heading"
-        elif paragraph.style.name.startswith("Heading "):
-            level = paragraph.style.name.rsplit(" ", 1)[-1]
+        elif style == "Heading 1" and text.startswith(STRUCTURAL_HEADING_MARKER):
+            _strip_paragraph_prefix(paragraph, STRUCTURAL_HEADING_MARKER)
+            paragraph.style = "Tex2Sto Body Structural Heading"
+            if paragraph.text.startswith("Приложение "):
+                paragraph.paragraph_format.space_after = Pt(0)
+        elif style == "Heading 1" and text.startswith(APPENDIX_TITLE_MARKER):
+            _strip_paragraph_prefix(paragraph, APPENDIX_TITLE_MARKER)
+            paragraph.style = "Tex2Sto Appendix Title"
+        elif style.startswith("Heading "):
+            level = style.rsplit(" ", 1)[-1]
             paragraph.style = f"Tex2Sto Heading {level}"
         elif paragraph._p.find(f".//{qn('w:drawing')}") is not None:
             paragraph.style = "Tex2Sto Figure Content"
@@ -247,12 +257,13 @@ def _apply_styles(document, project: SourceProject) -> None:
         elif text.startswith(SYMBOLS_MARKER):
             _strip_paragraph_prefix(paragraph, SYMBOLS_MARKER)
             paragraph.style = "Tex2Sto Symbols"
-        elif paragraph.style.name == "Source Code":
+        elif style == "Source Code":
             paragraph.style = "Tex2Sto Code"
-        elif paragraph.style.name in {"Normal", "First Paragraph"}:
+        elif style in {"Normal", "First Paragraph"}:
             paragraph.style = "Tex2Sto Body"
         if paragraph.style.name in {
-            "Tex2Sto Structural Heading",
+            "Tex2Sto Body Structural Heading",
+            "Tex2Sto Appendix Title",
             "Tex2Sto Heading 1",
             "Tex2Sto Heading 2",
             "Tex2Sto Heading 3",
@@ -331,27 +342,25 @@ def _format_lists(document, project: SourceProject) -> None:
 
 
 def _toc_entries(document) -> list[tuple[int, str, str]]:
-    headings: list[tuple[int, str, object]] = []
-    for paragraph in document.paragraphs:
-        text = " ".join(paragraph.text.split())
-        style = paragraph.style.name
-        if not text:
-            continue
-        if style == "Tex2Sto Structural Heading":
-            headings.append((1, text, paragraph))
-        elif style.startswith("Tex2Sto Heading "):
-            headings.append((int(style.rsplit(" ", 1)[-1]), text, paragraph))
-
+    bookmarks = list(document.element.body.iter(qn("w:bookmarkStart")))
+    existing_names = {node.get(qn("w:name")) for node in bookmarks}
+    identifier = max((int(node.get(qn("w:id"))) for node in bookmarks), default=0) + 1
     entries: list[tuple[int, str, str]] = []
-    for position, (level, title, paragraph) in enumerate(headings):
-        if title.startswith("ПРИЛОЖЕНИЕ "):
-            parts = title.split()
-            title = f"Приложение {parts[1]}"
-        else:
-            title = STRUCTURAL_TOC_TITLES.get(title, title)
-        bookmark = f"tex2sto_toc_{position + 1}"
-        add_bookmark(paragraph, bookmark, position + 100)
-        entries.append((level, title, bookmark))
+    for paragraph in document.paragraphs:
+        outline = paragraph.style.element.find(f"{qn('w:pPr')}/{qn('w:outlineLvl')}")
+        if outline is None:
+            continue
+        level = int(outline.get(qn("w:val"))) + 1
+        text = " ".join(paragraph.text.split())
+        if not text or not 1 <= level <= TOC_DEPTH:
+            continue
+        bookmark = f"tex2sto_toc_{identifier}"
+        while bookmark in existing_names:
+            identifier += 1
+            bookmark = f"tex2sto_toc_{identifier}"
+        add_bookmark(paragraph, bookmark, identifier)
+        entries.append((level, text, bookmark))
+        identifier += 1
     return entries
 
 
@@ -532,7 +541,6 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
     _format_lists(document, project)
     _format_tables(document, project, index)
     _format_equations(document, index)
-    toc_entries = _toc_entries(document)
     lab_title = project.metadata.lab_title
     if lab_title is not None:
         # A semantic heading can begin with a break marker. The cover already
@@ -545,21 +553,30 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
         if document.paragraphs:
             document.paragraphs[0].paragraph_format.page_break_before = True
     anchor = document.element.body[0]
-    elements = (
-        docx_title_page(document, lab_title)
-        if lab_title is not None
-        else [
-            *(
-                docx_front_matter(document, project.metadata, project.settings.table_line_spacing)
-                if project.metadata.practice_title is not None
-                else [
-                    *_title_page(document, project),
-                    *_assignment_pages(document, project),
-                ]
-            ),
-            *_abstract_and_toc(document, project, index, toc_entries),
-        ]
+    department_template = (
+        project.metadata.practice_title is not None
+        and project.settings.practice_template == "6132-6133"
     )
+    if lab_title is not None:
+        elements = docx_title_page(document, lab_title)
+    elif department_template:
+        elements = docx_department_front_matter(document, project.metadata)
+    elif project.metadata.practice_title is not None:
+        elements = docx_front_matter(
+            document, project.metadata, project.settings.table_line_spacing
+        )
+    else:
+        elements = [*_title_page(document, project), *_assignment_pages(document, project)]
+    if lab_title is None:
+        elements.extend(
+            _abstract_and_toc(
+                document,
+                project,
+                index,
+                _toc_entries(document),
+                start_on_new_page=department_template,
+            )
+        )
     for element in elements:
         _move_before(element, anchor)
     set_update_fields(document)

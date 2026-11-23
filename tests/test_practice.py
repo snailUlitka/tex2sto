@@ -7,12 +7,14 @@ from zipfile import ZipFile
 
 import pytest
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
 from tex2sto.build import BuildOptions, build_project
 from tex2sto.dialect import load_project
-from tex2sto.dialect.practice import parse_practice_title
+from tex2sto.dialect.practice import parse_practice_assignment, parse_practice_title
 from tex2sto.errors import SourceError
+from tex2sto.profiles.ssau.practice import latex_front_matter
 from tex2sto.validation import validate_project
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +68,32 @@ def test_practice_requires_assignment_rows() -> None:
     assert "T2S-E206" in {item.code for item in validate_project(project).items}
 
 
+def test_practice_assignment_preserves_paragraphs_in_each_cell() -> None:
+    assignment = parse_practice_assignment(
+        (
+            "Компетенция\n% comment\nи показатель\n \nСледующий показатель",
+            "Знать~методы.\n\nУметь выбирать.\n\nВладеть навыками.",
+            "Первое задание \\& результат.\n\n\nВторое задание.",
+        )
+    )
+
+    assert assignment.competency == ("Компетенция и показатель", "Следующий показатель")
+    assert assignment.outcomes == ("Знать\u00a0методы.", "Уметь выбирать.", "Владеть навыками.")
+    assert assignment.task == ("Первое задание & результат.", "Второе задание.")
+
+
+@pytest.mark.parametrize("outcomes", ("\n% comment\n", "Знать.\n\n\\textbf{Уметь}"))
+def test_practice_assignment_rejects_empty_cells_or_markup(outcomes: str) -> None:
+    with pytest.raises(SourceError):
+        parse_practice_assignment(("Компетенция", outcomes, "Задание"))
+
+
+def test_practice_preview_lowers_outcomes_as_paragraphs() -> None:
+    source = latex_front_matter(load_project(EXAMPLE).metadata)
+    assert r"Знать: методы исследования.\par Уметь: выбирать методы исследования." in source
+    assert r"\par Владеть: навыками анализа." in source
+
+
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
 def test_practice_docx_front_matter_and_configured_styles(tmp_path: Path) -> None:
     project = load_project(EXAMPLE)
@@ -80,15 +108,83 @@ def test_practice_docx_front_matter_and_configured_styles(tmp_path: Path) -> Non
     assert "РЕФЕРАТ" in texts and "СОДЕРЖАНИЕ" in texts
     assert all("TEX2STO_" not in text for text in texts)
     assert len(document.element.xpath('.//w:br[@w:type="page"]')) >= 12
-    assert texts.index("ЗАКЛЮЧЕНИЕ") < texts.index("ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ")
+    assert texts.index("Заключение") < texts.index("Определения, обозначения и сокращения")
+    fields = document.element.body.xpath('.//w:instrText[starts-with(normalize-space(.), "TOC ")]')
+    assert len(fields) == 1
     assert len(document.tables[0].rows) == 7
     assert document.tables[0].rows[0]._tr.find(qn("w:trPr")).find(qn("w:tblHeader")) is not None
     assert document.tables[0].cell(1, 1).paragraphs[0].paragraph_format.line_spacing == 1.0
+    assert len(document.tables[0].cell(1, 1).paragraphs) == 3
     assert "Самара 2026" in document.sections[0].first_page_footer.paragraphs[0].text
     for style in ("Tex2Sto Heading 1", "Tex2Sto Heading 2", "Tex2Sto Abstract Keywords"):
         assert document.styles[style].paragraph_format.first_line_indent.twips == 709
     with ZipFile(output) as package:
         assert "PAGE" in package.read("word/footer1.xml").decode()
+
+
+@pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
+def test_department_practice_docx_matches_forms(tmp_path: Path) -> None:
+    config = tmp_path / "department.toml"
+    config.write_text(
+        '[layout]\npractice_template = "6132-6133"\n'
+        '[structure]\nterminology_position = "after-conclusion"\n',
+        encoding="utf-8",
+    )
+    project = load_project(EXAMPLE, config=config)
+    details = "доцент кафедры информационных систем и технологий, кандидат технических наук"
+    project.metadata.supervisor_details = details
+    assert validate_project(project).items == ()
+
+    (output,) = build_project(project, BuildOptions(output_dir=tmp_path))
+    document = Document(output)
+    paragraphs = document.paragraphs
+    texts = [p.text for p in paragraphs]
+    institution = paragraphs[texts.index("РОССИЙСКОЙ ФЕДЕРАЦИИ")]
+    assert institution.style.base_style.font.size.pt == 14
+    assert institution.style.paragraph_format.line_spacing == 1.0
+    assert institution.style.base_style.paragraph_format.alignment == WD_ALIGN_PARAGRAPH.CENTER
+    assert paragraphs[texts.index("ОТЧЕТ ПО ПРАКТИКЕ")].runs[0].bold is True
+    for field, explainer in (
+        ("Вид практики ", "(учебная, производственная)"),
+        ("Тип практики ", "(в соответствии с ОПОП ВО)"),
+    ):
+        index = next(i for i, text in enumerate(texts) if text.startswith(field))
+        assert paragraphs[index].runs[-1].underline is True
+        assert texts[index + 1] == explainer
+    assert "(в соответствии с календарным учебным графиком)" in texts
+    assert "(уровень магистратуры)" in texts
+    assert texts.index("Самара 2026") == texts.index("Оценка ____________") + 1
+    assert not document.sections[0].first_page_footer.paragraphs[0].text
+
+    assignment = next(p for p in paragraphs if p.text.startswith("Задание(я) для выполнения"))
+    assert assignment.runs[0].bold is True
+    assert assignment.text.endswith("проведение исследований)")
+    assert "Студенту группы 6101-090401D" in texts
+    assert "Иванову Ивану Ивановичу" in texts
+    assert "от 30.09.2026 г. № 100-ПР" in texts
+    assert texts.count("Руководитель практики,") == 2
+    signatures = [text for text in texts if text.startswith(details)]
+    assert len(signatures) == 2
+    assert all("\t______________\u00a0Петров\u00a0П.\u00a0П." in text for text in signatures)
+    assert texts.count("(подпись)") == 2
+    assert paragraphs[texts.index("РЕФЕРАТ")].paragraph_format.page_break_before is True
+
+    table = document.tables[0]
+    widths = [column.width.twips for column in table.columns]
+    assert widths == [2374, 3630, 3351]
+    assert not table.autofit
+    assert table.cell(0, 0).text == (
+        "Планируемые результаты освоения образовательной программы (компетенции)"
+    )
+    assert table.rows[0]._tr.xpath("w:trPr/w:tblHeader")
+    assert all(c.paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.CENTER for c in table.rows[0].cells)
+    for row in table.rows:
+        assert [cell.width.twips for cell in row.cells] == widths
+    outcomes = table.cell(1, 1).paragraphs
+    assert [p.text.split(":")[0] for p in outcomes] == ["Знать", "Уметь", "Владеть"]
+    assert all(p.paragraph_format.line_spacing == 1.0 for p in outcomes)
+    fields = document.element.body.xpath('.//w:instrText[starts-with(normalize-space(.), "TOC ")]')
+    assert len(fields) == 1
 
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")

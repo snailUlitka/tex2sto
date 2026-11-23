@@ -47,8 +47,7 @@ experimental preview beyond release 2.0.
 The corrections captured by the first generated-DOCX review on 2026-09-11 were
 implemented and regression-tested on 2026-09-12:
 
-- structural contents entries use sentence case and updateable page-reference
-  fields without question-mark placeholders;
+- structural contents entries use sentence case with page references;
 - terminology is one optional structural element, introductions are centered,
   headings use regular type, and heading numbers use non-breaking spaces;
 - ordinary body paragraphs retain the 1.25 cm indent while positioned content
@@ -58,9 +57,8 @@ implemented and regression-tested on 2026-09-12:
 - list labels use the prescribed literal hyphen or enumerator followed by U+00A0;
 - figure content, code, and continued-table labels use explicit alignments;
 - editable equation numbers use a symmetric borderless row that keeps the
-  equation centered and its number right-aligned, symbol explanations have
-  structured source syntax, and appendix designator/title lines share one
-  paragraph;
+  equation centered and its number right-aligned, and symbol explanations have
+  structured source syntax;
 - structured bibliography records cover web, legal, article, book, chapter,
   conference, dataset, preprint, standard, and thesis sources with normalized
   punctuation and compact responsibility/container separators.
@@ -68,6 +66,11 @@ implemented and regression-tested on 2026-09-12:
 The generated acceptance DOCX and rendered page images remain machine-local QA
 evidence and are not committed to the repository. Current Microsoft Word field
 refresh remains a manual release gate.
+
+The department practice form is available as an opt-in within SSAU. The native
+Word contents field refreshes entries in practice and thesis reports. The
+appendix label and title are separate paragraphs so the field includes the
+label alone.
 
 ## Release Readiness Work
 

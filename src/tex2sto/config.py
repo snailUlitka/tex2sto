@@ -21,6 +21,7 @@ class ProjectSettings:
     table_numbering: str | None = None
     equation_numbering: str | None = None
     table_line_spacing: float = 1.5
+    practice_template: str = "generic"
     terminology_position: str = "before-introduction"
     separator: str = "hyphen"
     allow_em_dash: bool = False
@@ -43,7 +44,10 @@ SCHEMA = {
         "table": "table_numbering",
         "equation": "equation_numbering",
     },
-    "layout": {"table_line_spacing": "table_line_spacing"},
+    "layout": {
+        "table_line_spacing": "table_line_spacing",
+        "practice_template": "practice_template",
+    },
     "structure": {"terminology_position": "terminology_position"},
     "punctuation": {"separator": "separator", "allow_em_dash": "allow_em_dash"},
     "lists": {"marker": "list_marker", "numbering": "list_numbering"},
@@ -62,6 +66,7 @@ def validate_settings(settings: ProjectSettings) -> ProjectSettings:
         "figure_numbering": {None, "auto", "global", "section"},
         "table_numbering": {None, "auto", "global", "section"},
         "equation_numbering": {None, "auto", "global", "section"},
+        "practice_template": {"generic", "6132-6133"},
         "terminology_position": {"before-introduction", "after-conclusion"},
         "separator": {"hyphen", "en-dash", "em-dash"},
         "list_marker": {"hyphen", "en-dash", "em-dash"},

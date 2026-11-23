@@ -101,9 +101,9 @@ Derived from clauses 5.4.1-5.4.2:
 - show an appendix entry as `Приложение А`, while the appendix page label is
   `ПРИЛОЖЕНИЕ А`.
 
-The case distinction above is an explicit project decision informed by the
-teaching template while retaining the uppercase structural heading required by
-the STO.
+The case distinction follows the teaching template and the uppercase heading
+requirement of the STO. The DOCX profile uses a native Word TOC field based on
+outline levels 1–4 so that edits to the headings are reflected on full refresh.
 
 ## Figures
 
@@ -233,5 +233,9 @@ including wrapped text, is indented 1.25 cm from the left margin.
 Practice-specific cover fields and competency matrices are structured metadata.
 Required competencies and actual attainment are authored and reviewed by humans.
 Post-render page warnings count the supplied PDF scope, with no default bounds.
-Full Word TOC refresh, exclusion of uncited sources, citation locators, landscape
-pages, and source-age checks are not requirements for this release.
+Exclusion of uncited sources, citation locators, landscape pages, and source-age
+checks remain deferred.
+
+The 6132/6133 form uses the supplied department template for the practice cover
+and assignment. Its competency grid follows the template's column proportions
+within the profile's page margins.

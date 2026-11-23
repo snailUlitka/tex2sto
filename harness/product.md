@@ -58,11 +58,11 @@ introducing a `.bib` dependency.
 - `-o` selects the output directory.
 - DOCX remains editable. Native Word content is preferred over rendered images,
   including native OMML equations through the tested Pandoc path.
-- Static table-of-contents entries, captions, and cross-reference display text
-  are acceptable, provided semantic Word styles and navigation structures are
-  applied where practical.
-- Every semantic DOCX element uses an explicit custom style in the
-  `Tex2Sto ...` family.
+- Practice and thesis DOCX files use a native Word table of contents that can
+  rebuild the entries after heading edits. Captions and cross-reference display
+  text are resolved at build time.
+- Semantic DOCX elements use explicit `Tex2Sto ...` formatting. Word's
+  built-in TOC styles inherit the profile's TOC styles.
 
 ## Authoring Contract
 
@@ -152,6 +152,6 @@ All previously supported document constructs remain available.
   em dashes are explicitly configurable and otherwise produce a prose warning.
 - Page-count bounds are optional post-render warnings, without default limits.
 - Practice reports have a dedicated cover and editable competency assignment.
-- Current contents page fields and uncited-source warnings remain sufficient.
+- Uncited sources produce warnings.
 - Citation page locators, landscape pages, and source-age checks remain deferred.
 - The sample's six chapters are author content, not a universal validated outline.
