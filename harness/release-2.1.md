@@ -55,3 +55,16 @@ action.
 The prepared release is [PR 2](https://github.com/snailUlitka/tex2sto/pull/2)
 and an unpublished GitHub draft for `v2.1.0`. Only release-related changes are
 included; the pre-existing local `.gitignore` edit is excluded.
+
+## Version 2.1.1
+
+The patch release adds the opt-in 6132/6133 practice form, paragraphs in
+assignment cells, and a fully refreshable Word TOC for practice and thesis DOCX
+files. The release notes also cover the formula changes for users upgrading from
+2.0.0, the previously published release.
+
+On 2026-11-23, pinned Pandoc 3.11 builds of both practice forms, the thesis, and
+the laboratory report passed strict validation and visual review. Word for
+macOS 16.101.1 rebuilt the practice and thesis contents after heading
+additions, renames, and removals. The 12 practice links and eight thesis links
+matched their destination pages in Word. The macOS suite passed 166 tests.
