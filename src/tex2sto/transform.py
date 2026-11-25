@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 
 from tex2sto.dialect.syntax import find_command_calls, find_environment, replace_spans
-from tex2sto.model import BibliographyItem, NumberingIndex, ObjectKind, SourceProject
+from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.model.numbering import APPENDIX_LETTERS
+from tex2sto.profiles.ssau.bibliography import format_source
 
 PAGE_BREAK_MARKER = "TEX2STO_PAGE_BREAK"
 TABLE_BREAK_MARKER = "TEX2STO_TABLE_BREAK"
@@ -105,85 +105,6 @@ def _replace_objects(source: str, index: NumberingIndex, *, target: str, separat
     return replace_spans(source, replacements)
 
 
-def _normalize_bibliography_text(value: str, separator: str = "-") -> str:
-    normalized = value.strip()
-    while '"' in normalized:
-        normalized = normalized.replace('"', "«", 1)
-        if '"' not in normalized:
-            break
-        normalized = normalized.replace('"', "»", 1)
-    normalized = re.sub(r" (?:(?:---)|[-–—]) ", f" {separator} ", normalized)
-    if re.fullmatch(r"\d+\s*[-—–]\s*\d+", normalized):
-        normalized = re.sub(r"\s*[-—–]\s*", "–", normalized)
-    return normalized
-
-
-def _source_medium(item: BibliographyItem) -> str:
-    if item.medium:
-        return item.medium.strip("[] ")
-    if item.kind in {"dataset", "legal", "preprint", "web"}:
-        return "Электронный ресурс"
-    return "Текст"
-
-
-def _format_structured_source(item: BibliographyItem, separator: str = "-") -> str:
-    authors = _normalize_bibliography_text(item.authors, separator).rstrip(". ")
-    title = _normalize_bibliography_text(item.title, separator).rstrip(". ")
-    responsibility = _normalize_bibliography_text(
-        item.contributors or item.authors, separator
-    ).rstrip(". ")
-    container = _normalize_bibliography_text(item.container, separator).rstrip(". ")
-
-    description = f"{title} [{_source_medium(item)}]"
-    if responsibility:
-        description += f"/{responsibility}"
-    if container:
-        description += f"//{container}"
-    if authors:
-        description = f"{authors}. {description}"
-
-    publication = ""
-    place = _normalize_bibliography_text(item.place, separator).rstrip(". ")
-    publisher = _normalize_bibliography_text(item.publisher, separator).rstrip(". ")
-    year = _normalize_bibliography_text(item.year, separator).rstrip(". ")
-    publication = f"{place}: {publisher}" if place and publisher else place or publisher
-    if year:
-        publication = f"{publication}, {year}" if publication else year
-
-    parts = [description]
-    if publication:
-        parts.append(publication)
-    if item.issue:
-        issue = _normalize_bibliography_text(item.issue, separator).strip()
-        parts.append(issue if issue.startswith("№") else f"№ {issue}")
-    if item.pages:
-        pages = _normalize_bibliography_text(item.pages, separator).strip().rstrip(".")
-        if re.fullmatch(r"\d+–\d+", pages):
-            pages = f"С. {pages}"
-        elif pages.isdigit():
-            pages = f"{pages} с."
-        parts.append(pages)
-    if item.url:
-        parts.append(f"URL: {item.url.strip().rstrip('. ')}")
-    if item.access_date:
-        parts.append(f"(дата обращения: {item.access_date.strip()})")
-    return f" {separator} ".join(parts).rstrip(". ") + "."
-
-
-def _format_source(item: BibliographyItem, separator: str = "-") -> str:
-    if not item.details:
-        return _format_structured_source(item, separator)
-    title = _normalize_bibliography_text(item.title, separator).rstrip(". ")
-    if item.kind == "web" and "Электронный ресурс" not in title:
-        title = f"{title} [Электронный ресурс]"
-    parts = [
-        _normalize_bibliography_text(part, separator).rstrip(". ")
-        for part in (item.authors, title, item.details)
-        if part
-    ]
-    return ". ".join(parts) + "."
-
-
 def _structural(title: str, *, target: str) -> str:
     if target == "pdf":
         return f"\\texstructural{{{title.upper()}}}"
@@ -194,8 +115,14 @@ def _bibliography(project: SourceProject, index: NumberingIndex, *, target: str)
     by_key = {item.key: item for item in project.bibliography}
     ordered = sorted(index.citations, key=index.citations.get)
     ordered.extend(item.key for item in project.bibliography if item.key not in index.citations)
+    nir_master = (
+        target == "docx"
+        and project.metadata.practice_title is not None
+        and project.settings.practice_template == "nir-master"
+    )
+    separator = project.settings.separator_text
     lines = [
-        f"{number} {_format_source(by_key[key], project.settings.separator_text)}"
+        f"{number} {format_source(by_key[key], separator, nir_master=nir_master)}"
         for number, key in enumerate(ordered, start=1)
     ]
     title = _structural("Список использованных источников", target=target)

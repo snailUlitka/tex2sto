@@ -175,6 +175,11 @@ The DOCX requests explicit field refresh after pagination for this form.
 Word can otherwise evaluate the field from the reference package's page cache
 before layout and display an incorrect count.
 
+The SSAU bibliography formatter applies the research form's article and book
+conventions to named records in `nir-master` DOCX files. Source order still
+comes from the shared citation index, and Pandoc turns structured HTTP(S)
+addresses into editable Word links.
+
 ### Post-render page checks
 
 `check-pages` and MCP `check_pages` consume an already rendered PDF using

@@ -173,6 +173,14 @@ Derived from clauses 5.9.1-5.9.2 and 6.4.1-6.4.3:
 - normalize Russian guillemets, configured separators (hyphens by default), numeric en-dash
   ranges, and compact responsibility/container slash separators.
 
+The supplied article and book examples define the bibliography style of
+`nir-master` DOCX reports. Use the first author's surname and initials as the
+heading and spaced slash separators for responsibility and the container.
+End each publication part with a period and use the configured separator
+between parts. A named article record puts the year before volume, issue, and
+pages or the article identifier. Use a hyphen for a numeric page span and keep
+the access date with the URL.
+
 ## Appendices and Listings
 
 Derived from clauses 5.10.1-5.10.10 and confirmed project choices:

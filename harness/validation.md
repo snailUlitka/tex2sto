@@ -85,6 +85,8 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
   their nested `PAGEREF` fields in practice and thesis DOCX files;
 - fully inflected quantities in the `nir-master` abstract and a `NUMPAGES`
   field with a nonnumeric placeholder and explicit refresh after layout;
+- the supplied `nir-master` article and book bibliography formats, including
+  an editable DOI hyperlink with its original target;
 - outline levels and styles for numbered and structural contents entries,
   including the appendix label and the separate title paragraph;
 - Russian list formats;

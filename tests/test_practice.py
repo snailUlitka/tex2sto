@@ -14,6 +14,7 @@ from tex2sto.build import BuildOptions, build_project
 from tex2sto.dialect import load_project
 from tex2sto.dialect.practice import parse_practice_assignment, parse_practice_title
 from tex2sto.errors import SourceError
+from tex2sto.model import BibliographyItem
 from tex2sto.profiles.ssau.practice import latex_front_matter, nir_master_abstract_counts
 from tex2sto.validation import validate_project
 
@@ -205,6 +206,65 @@ def test_nir_master_docx_matches_forms(tmp_path: Path) -> None:
     assert all(p.paragraph_format.line_spacing == 1.0 for p in outcomes)
     fields = document.element.body.xpath('.//w:instrText[starts-with(normalize-space(.), "TOC ")]')
     assert len(fields) == 1
+
+
+@pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
+def test_nir_master_docx_formats_article_book_and_doi(tmp_path: Path) -> None:
+    project = load_project(EXAMPLE)
+    project.settings = replace(project.settings, practice_template="nir-master")
+    doi = "https://doi.org/10.1186/s12891-024-07669-7"
+    project.bibliography = [
+        BibliographyItem(
+            key="guide",
+            kind="book",
+            authors="Петров, П. П.",
+            title="Название книги: учеб. пособие",
+            place="Самара",
+            publisher="Изд-во Самарского университета",
+            year="2024",
+            pages="120",
+        ),
+        BibliographyItem(
+            key="online",
+            kind="article",
+            authors="Rakhshankhah N.; Abbaszadeh M.; Kazemi A. et al.",
+            title="Название электронной статьи",
+            container="BMC Musculoskeletal Disorders. Vol. 25",
+            year="2024",
+            pages="Article 547",
+            url=doi,
+            access_date="11.11.2026",
+        ),
+        BibliographyItem(
+            key="article",
+            kind="article",
+            authors="Иванов И. И.; Петров П. П.",
+            contributors="И. И. Иванов, П. П. Петров",
+            title="Название статьи",
+            container="Название журнала",
+            year="2025",
+            issue="3",
+            pages="45-56",
+        ),
+    ]
+    project.body = project.body.replace(r"\cite{guide}", r"\cite{article,guide,online}")
+    assert validate_project(project).items == ()
+
+    (output,) = build_project(project, BuildOptions(output_dir=tmp_path))
+    paragraphs = Document(output).paragraphs
+    texts = [p.text for p in paragraphs]
+    assert (
+        "1 Иванов, И.И. Название статьи [Текст] / И.И. Иванов, П.П. Петров // "
+        "Название журнала. - 2025. - № 3. - С. 45-56."
+    ) in texts
+    assert (
+        "2 Петров, П.П. Название книги [Текст]: учеб. пособие / П.П. Петров. - "
+        "Самара: Изд-во Самарского университета, 2024. - 120 с."
+    ) in texts
+    online = next(p for p in paragraphs if p.text.startswith("3 Rakhshankhah, N."))
+    assert "A. Kazemi et al. // BMC Musculoskeletal Disorders. - 2024. - Vol. 25." in online.text
+    assert online.text.endswith(f"Article 547. - URL: {doi} (дата обращения: 11.11.2026).")
+    assert [(link.text, link.url) for link in online.hyperlinks] == [(doi, doi)]
 
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")

@@ -4,11 +4,11 @@ from pathlib import Path
 
 from tex2sto.dialect import load_project
 from tex2sto.model import BibliographyItem, build_numbering
+from tex2sto.profiles.ssau.bibliography import format_source
 from tex2sto.transform import (
     APPENDIX_TITLE_MARKER,
     STRUCTURAL_HEADING_MARKER,
     TABLE_BREAK_MARKER,
-    _format_source,
     renderer_body,
 )
 
@@ -79,7 +79,7 @@ def test_structured_bibliography_uses_normalized_compact_separators() -> None:
         pages="3-9",
     )
 
-    assert _format_source(item) == (
+    assert format_source(item) == (
         "Иванов И. И.; Петров П. П. «Методы контроля» [Текст]/"
         "И. И. Иванов, П. П. Петров//Журнал «Контроль» - 2025 - № 4 - С. 3–9."
     )
@@ -117,10 +117,10 @@ def test_structured_bibliography_supports_all_acceptance_kinds() -> None:
     }
 
     for kind, fields in fixtures.items():
-        rendered = _format_source(BibliographyItem(key=kind, kind=kind, title="Название", **fields))
+        rendered = format_source(BibliographyItem(key=kind, kind=kind, title="Название", **fields))
         assert rendered.endswith(".")
         assert " - " in rendered
-    assert "- 576 с." in _format_source(
+    assert "- 576 с." in format_source(
         BibliographyItem(
             key="book",
             kind="book",
@@ -134,12 +134,32 @@ def test_structured_bibliography_supports_all_acceptance_kinds() -> None:
 
 
 def test_bibliography_preserves_standard_identifiers() -> None:
-    rendered = _format_source(
-        BibliographyItem(
-            key="sto",
-            kind="standard",
-            title="СТО 02068410-004-2018",
-            details="Самара: Университет, 2019. 37 с.",
-        )
+    item = BibliographyItem(
+        key="sto",
+        kind="standard",
+        title="СТО 02068410-004-2018",
+        details="Самара: Университет, 2019. 37 с.",
     )
+    rendered = format_source(item)
     assert "СТО 02068410-004-2018" in rendered
+    assert format_source(item, nir_master=True) == rendered
+
+
+def test_nir_master_article_keeps_volume_article_number_and_online_details() -> None:
+    article = BibliographyItem(
+        key="article",
+        kind="article",
+        authors="Rakhshankhah N.; Abbaszadeh M.; Kazemi A. et al.",
+        title="Назначение метода: сравнение подходов",
+        container="BMC Musculoskeletal Disorders. Vol. 25",
+        year="2024",
+        pages="Article 547",
+        url=r"https\://doi.org/10.1186/s12891-024-07669-7",
+        access_date="11.11.2026",
+    )
+    assert format_source(article, nir_master=True) == (
+        "Rakhshankhah, N. Назначение метода: сравнение подходов [Текст] / "
+        "N. Rakhshankhah, M. Abbaszadeh, A. Kazemi et al. // "
+        "BMC Musculoskeletal Disorders. - 2024. - Vol. 25. - Article 547. - "
+        r"URL: \url{https://doi.org/10.1186/s12891-024-07669-7} (дата обращения: 11.11.2026)."
+    )
