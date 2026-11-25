@@ -26,7 +26,7 @@ Pandoc 3.11, как и при использовании CLI.
 
 ```sh
 docker run --rm -i -v "$PWD:/work" \
-  --entrypoint /app/.venv/bin/tex2sto-mcp tex2sto:2.1.2
+  --entrypoint /app/.venv/bin/tex2sto-mcp tex2sto:2.1.3
 ```
 
 В настройке MCP-клиента для Docker передайте эквивалентные аргументы команде

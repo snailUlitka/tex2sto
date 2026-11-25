@@ -81,3 +81,15 @@ Word for macOS 16.101.1 displayed the pending result on open. After refresh,
 the field matched 39 pages in the rebuilt report and 40 in a temporary copy
 with one added page. The LibreOffice review reported 39 pages for the rebuilt
 report. Strict Pandoc 3.11 builds and 171 local tests passed.
+
+## Version 2.1.3
+
+Named bibliography records in `nir-master` DOCX reports follow the supplied
+department article and book examples. Citation order comes from the same
+numbering index. Structured web addresses are editable hyperlinks, and access
+dates are displayed beside them.
+
+On 2026-11-25, the pinned Pandoc 3.11 produced both exact sample records and
+a native DOI link. The four bibliography pages of the rebuilt research report
+and the sample bibliography page were inspected after LibreOffice rendering.
+The three strict example builds and 173 local tests passed.

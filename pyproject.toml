@@ -1,6 +1,6 @@
 [project]
 name = "tex2sto"
-version = "2.1.2"
+version = "2.1.3"
 description = "Compile a controlled LaTeX dialect to SSAU-compliant DOCX"
 readme = "README.md"
 license = "MIT"
