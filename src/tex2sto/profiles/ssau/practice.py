@@ -34,6 +34,27 @@ def display_date(value: str) -> str:
     return date.fromisoformat(value).strftime("%d.%m.%Y") if value else "____________"
 
 
+def _count_text(count: int, singular: str, few: str, many: str) -> str:
+    last_digit = count % 10
+    if last_digit == 1 and count % 100 != 11:
+        noun = singular
+    elif 2 <= last_digit <= 4 and not 12 <= count % 100 <= 14:
+        noun = few
+    else:
+        noun = many
+    return f"{count} {noun}"
+
+
+def nir_master_abstract_counts(figures: int, tables: int, sources: int, appendices: int) -> str:
+    counts = (
+        _count_text(figures, "рисунок", "рисунка", "рисунков"),
+        _count_text(tables, "таблица", "таблицы", "таблиц"),
+        _count_text(sources, "источник", "источника", "источников"),
+        _count_text(appendices, "приложение", "приложения", "приложений"),
+    )
+    return ", ".join(counts) + "."
+
+
 def _cell_content(cell, paragraphs: tuple[str, ...], spacing: float) -> None:
     first = cell.paragraphs[0]
     first.text = paragraphs[0]
@@ -149,7 +170,7 @@ def docx_front_matter(document, metadata: DocumentMetadata, table_spacing: float
     return elements
 
 
-def docx_department_front_matter(document, metadata: DocumentMetadata) -> list:
+def docx_nir_master_front_matter(document, metadata: DocumentMetadata) -> list:
     title = metadata.practice_title
     assert title is not None
     elements = []

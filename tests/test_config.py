@@ -47,6 +47,28 @@ def test_reject_invalid_configuration(tmp_path: Path, text: str) -> None:
         load_settings(tmp_path)
 
 
+def test_deprecated_practice_template_selects_nir_master_in_strict_mode(
+    project_dir: Path,
+) -> None:
+    (project_dir / "tex2sto.toml").write_text('[layout]\npractice_template = "6132-6133"\n')
+    with pytest.warns(FutureWarning, match="Use 'nir-master'"):
+        assert load_settings(project_dir).practice_template == "nir-master"
+    with pytest.warns(FutureWarning, match="removed in tex2sto 2.2.0"):
+        assert main(["check", str(project_dir / "main.tex"), "--strict"]) == 0
+
+
+def test_old_practice_template_is_rejected_from_2_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("tex2sto.config.__version__", "2.2.0")
+    config = tmp_path / "tex2sto.toml"
+    config.write_text('[layout]\npractice_template = "6132-6133"\n')
+    with pytest.raises(SourceError, match="was removed in tex2sto 2.2.0"):
+        load_settings(tmp_path)
+    config.write_text('[layout]\npractice_template = "nir-master"\n')
+    assert load_settings(tmp_path).practice_template == "nir-master"
+
+
 def test_explicit_config_and_override_precedence(project_dir: Path, tmp_path: Path) -> None:
     config = tmp_path / "other.toml"
     config.write_text('[numbering]\nmode="section"\n[build]\nstrict=true')

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import math
 import tomllib
+import warnings
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
 from tex2sto.errors import SourceError
+from tex2sto.version import __version__
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +58,19 @@ SCHEMA = {
 
 
 def validate_settings(settings: ProjectSettings) -> ProjectSettings:
+    if settings.practice_template == "6132-6133":
+        if tuple(map(int, __version__.split(".")[:2])) >= (2, 2):
+            raise SourceError(
+                "layout.practice_template '6132-6133' was removed in tex2sto 2.2.0. "
+                "Use 'nir-master'."
+            )
+        warnings.warn(
+            "layout.practice_template '6132-6133' is deprecated and will be removed "
+            "in tex2sto 2.2.0. Use 'nir-master'.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        settings = replace(settings, practice_template="nir-master")
     for name in ("pdf", "strict", "allow_em_dash"):
         if type(getattr(settings, name)) is not bool:
             raise SourceError(f"configuration {name} must be a boolean")
@@ -66,7 +81,7 @@ def validate_settings(settings: ProjectSettings) -> ProjectSettings:
         "figure_numbering": {None, "auto", "global", "section"},
         "table_numbering": {None, "auto", "global", "section"},
         "equation_numbering": {None, "auto", "global", "section"},
-        "practice_template": {"generic", "6132-6133"},
+        "practice_template": {"generic", "nir-master"},
         "terminology_position": {"before-introduction", "after-conclusion"},
         "separator": {"hyphen", "en-dash", "em-dash"},
         "list_marker": {"hyphen", "en-dash", "em-dash"},

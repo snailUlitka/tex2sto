@@ -83,6 +83,8 @@ DOCX tests inspect selected OOXML rather than snapshotting the binary:
   subsequent lines, and preserved inline OMML;
 - bookmarks, `NUMPAGES`, and one native `TOC` enclosing the cached entries and
   their nested `PAGEREF` fields in practice and thesis DOCX files;
+- fully inflected quantities in the `nir-master` abstract and a `NUMPAGES`
+  field with a nonnumeric placeholder and explicit refresh after layout;
 - outline levels and styles for numbered and structural contents entries,
   including the appendix label and the separate title paragraph;
 - Russian list formats;
@@ -105,7 +107,7 @@ Also inspect both pages of the laboratory example and a cover without a
 variant, checking course/name wrapping, the bottom city/year, and the first
 body page's number. Long-field examples must not collide with the footer.
 
-Build and render both practice forms. Compare the 6132/6133 cover and assignment
+Build and render both practice forms. Compare the `nir-master` cover and assignment
 with the department template. Check a multipage matrix for repeated headings,
 separate paragraphs within cells, readable wrapping with long supervisor
 details, signature captions, and the transition to the abstract.
@@ -120,6 +122,9 @@ outline level, rename another, and remove a third. Use Word's **Update entire
 table** command. Confirm that the changed entries, hyperlinks, and page numbers
 are correct and that front matter and the appendix title are excluded. Update
 again if the new contents changes pagination.
+Match the research abstract's updated page count to the repaginated document
+in Word. Configuration tests verify that the deprecated alias works in strict
+mode and is rejected from 2.2.0.
 
 ## Dependency Upgrade Gate
 

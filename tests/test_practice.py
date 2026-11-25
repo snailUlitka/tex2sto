@@ -14,7 +14,7 @@ from tex2sto.build import BuildOptions, build_project
 from tex2sto.dialect import load_project
 from tex2sto.dialect.practice import parse_practice_assignment, parse_practice_title
 from tex2sto.errors import SourceError
-from tex2sto.profiles.ssau.practice import latex_front_matter
+from tex2sto.profiles.ssau.practice import latex_front_matter, nir_master_abstract_counts
 from tex2sto.validation import validate_project
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,6 +94,18 @@ def test_practice_preview_lowers_outcomes_as_paragraphs() -> None:
     assert r"\par Владеть: навыками анализа." in source
 
 
+@pytest.mark.parametrize(
+    ("counts", "text"),
+    [
+        ((10, 4, 15, 1), "10 рисунков, 4 таблицы, 15 источников, 1 приложение."),
+        ((21, 11, 3, 12), "21 рисунок, 11 таблиц, 3 источника, 12 приложений."),
+        ((2, 1, 111, 24), "2 рисунка, 1 таблица, 111 источников, 24 приложения."),
+    ],
+)
+def test_nir_master_abstract_uses_full_inflected_nouns(counts, text: str) -> None:
+    assert nir_master_abstract_counts(*counts) == text
+
+
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
 def test_practice_docx_front_matter_and_configured_styles(tmp_path: Path) -> None:
     project = load_project(EXAMPLE)
@@ -106,6 +118,8 @@ def test_practice_docx_front_matter_and_configured_styles(tmp_path: Path) -> Non
     assert any("30.09.2026 № 100-ПР" in text for text in texts)
     assert any("01.10.2026 по 30.11.2026" in text for text in texts)
     assert "РЕФЕРАТ" in texts and "СОДЕРЖАНИЕ" in texts
+    assert "Работа: 0 с., 0 рис., 0 табл., 1 источник(ов), 0 прил." in texts
+    assert document.settings.element.xpath("w:updateFields/@w:val") == ["true"]
     assert all("TEX2STO_" not in text for text in texts)
     assert len(document.element.xpath('.//w:br[@w:type="page"]')) >= 12
     assert texts.index("Заключение") < texts.index("Определения, обозначения и сокращения")
@@ -123,10 +137,10 @@ def test_practice_docx_front_matter_and_configured_styles(tmp_path: Path) -> Non
 
 
 @pytest.mark.skipif(shutil.which("pandoc") is None, reason="Pandoc is not installed")
-def test_department_practice_docx_matches_forms(tmp_path: Path) -> None:
-    config = tmp_path / "department.toml"
+def test_nir_master_docx_matches_forms(tmp_path: Path) -> None:
+    config = tmp_path / "nir-master.toml"
     config.write_text(
-        '[layout]\npractice_template = "6132-6133"\n'
+        '[layout]\npractice_template = "nir-master"\n'
         '[structure]\nterminology_position = "after-conclusion"\n',
         encoding="utf-8",
     )
@@ -167,7 +181,13 @@ def test_department_practice_docx_matches_forms(tmp_path: Path) -> None:
     assert len(signatures) == 2
     assert all("\t______________\u00a0Петров\u00a0П.\u00a0П." in text for text in signatures)
     assert texts.count("(подпись)") == 2
-    assert paragraphs[texts.index("РЕФЕРАТ")].paragraph_format.page_break_before is True
+    abstract = texts.index("РЕФЕРАТ")
+    assert paragraphs[abstract].paragraph_format.page_break_before is True
+    stats = paragraphs[abstract + 1]
+    assert stats.text == "Отчет … с., 0 рисунков, 0 таблиц, 1 источник, 0 приложений."
+    assert stats._p.xpath("w:r/w:instrText/text()") == [" NUMPAGES "]
+    assert stats._p.xpath("w:r/w:fldChar/@w:fldCharType") == ["begin", "separate", "end"]
+    assert document.settings.element.xpath("w:updateFields/@w:val") == ["false"]
 
     table = document.tables[0]
     widths = [column.width.twips for column in table.columns]

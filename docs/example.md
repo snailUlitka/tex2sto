@@ -70,8 +70,8 @@ uv run tex2sto check examples/practice-report/main.tex --strict
 uv run tex2sto build examples/practice-report/main.tex -o build/practice-report
 ```
 
-Чтобы собрать тот же пример на бланке 6132/6133, добавьте строку
-`practice_template = "6132-6133"` в существующий раздел `[layout]` его
+Чтобы собрать тот же пример на бланке НИР магистратуры, добавьте строку
+`practice_template = "nir-master"` в существующий раздел `[layout]` его
 `tex2sto.toml`. В первой строке задания пустые строки между «Знать», «Уметь»
 и «Владеть» создают отдельные абзацы в одной ячейке.
 

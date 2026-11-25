@@ -32,7 +32,7 @@ def add_field(paragraph: Paragraph, instruction: str, placeholder: str = "0") ->
     end_field(paragraph)
 
 
-def set_update_fields(document) -> None:
+def set_update_fields(document, *, on_open: bool = True) -> None:
     settings = document.settings.element
     node = settings.find(qn("w:updateFields"))
     if node is None:
@@ -40,7 +40,7 @@ def set_update_fields(document) -> None:
         settings.insert_element_before(
             node, "w:hdrShapeDefaults", "w:footnotePr", "w:endnotePr", "w:compat"
         )
-    node.set(qn("w:val"), "true")
+    node.set(qn("w:val"), "true" if on_open else "false")
 
 
 def repeat_table_row(row) -> None:

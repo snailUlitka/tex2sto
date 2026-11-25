@@ -236,6 +236,9 @@ Post-render page warnings count the supplied PDF scope, with no default bounds.
 Exclusion of uncited sources, citation locators, landscape pages, and source-age
 checks remain deferred.
 
-The 6132/6133 form uses the supplied department template for the practice cover
-and assignment. Its competency grid follows the template's column proportions
-within the profile's page margins.
+The `nir-master` form uses the supplied department template for the practice
+cover and assignment. Its competency grid follows the template's column
+proportions within the profile's page margins. The abstract begins with
+`Отчет` followed by the page count and fully spelled, inflected quantities
+for figures, tables, sources, and appendices. The page count covers the
+whole document, including the title page and appendices.

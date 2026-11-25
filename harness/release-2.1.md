@@ -68,3 +68,16 @@ the laboratory report passed strict validation and visual review. Word for
 macOS 16.101.1 rebuilt the practice and thesis contents after heading
 additions, renames, and removals. The 12 practice links and eight thesis links
 matched their destination pages in Word. The macOS suite passed 166 tests.
+
+## Version 2.1.2
+
+The master's research form uses `layout.practice_template = "nir-master"`.
+The config loader resolves `"6132-6133"` with a non-fatal deprecation warning
+in 2.1.x and rejects that value from 2.2.0. The research abstract spells out
+and inflects the quantities and gets total pages from Word's `NUMPAGES` field
+after pagination.
+
+Word for macOS 16.101.1 displayed the pending result on open. After refresh,
+the field matched 39 pages in the rebuilt report and 40 in a temporary copy
+with one added page. The LibreOffice review reported 39 pages for the rebuilt
+report. Strict Pandoc 3.11 builds and 171 local tests passed.

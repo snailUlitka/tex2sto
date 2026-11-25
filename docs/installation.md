@@ -46,16 +46,16 @@ LuaLaTeX. Для корректного шрифта ему также нуже�
 Образ содержит закреплённые Python, Pandoc и TeX Live:
 
 ```sh
-docker build -t tex2sto:2.1.1 .
+docker build -t tex2sto:2.1.2 .
 ```
 
 Рабочий каталог монтируется в `/work`, поэтому результаты остаются на машине:
 
 ```sh
-docker run --rm -v "$PWD:/work" tex2sto:2.1.1 \
+docker run --rm -v "$PWD:/work" tex2sto:2.1.2 \
   check examples/master-thesis/main.tex --strict
 
-docker run --rm -v "$PWD:/work" tex2sto:2.1.1 \
+docker run --rm -v "$PWD:/work" tex2sto:2.1.2 \
   build examples/master-thesis/main.tex -o build/example
 ```
 

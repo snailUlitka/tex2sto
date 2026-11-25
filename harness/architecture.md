@@ -163,11 +163,17 @@ returns to the left margin, while first lines retain the paragraph indent.
 Common author/institution/program fields remain existing commands. Repeated
 `\practiceassignment` commands form a typed competency/outcome/task matrix
 with plain-text paragraphs in each cell. The SSAU practice module owns wording
-and editable front matter. Projects select the department's 6132/6133 DOCX
-form through `layout.practice_template`. The generic form is the default
-and also serves the PDF preview. The department matrix uses the template's
+and editable front matter. Projects select the master's research DOCX form
+through `layout.practice_template = "nir-master"`. Configuration normalizes
+the deprecated `"6132-6133"` alias in 2.1.x and rejects it from 2.2.0.
+The generic form is the default and also serves the PDF preview.
+The department matrix uses the template's
 column proportions fitted to the SSAU text width and single spacing. The matrix
 repeats its header on later pages and is distinct from referenced body tables.
+The research abstract uses full Russian quantity nouns and a `NUMPAGES` field.
+The DOCX requests explicit field refresh after pagination for this form.
+Word can otherwise evaluate the field from the reference package's page cache
+before layout and display an incorrect count.
 
 ### Post-render page checks
 

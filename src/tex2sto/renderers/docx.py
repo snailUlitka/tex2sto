@@ -18,7 +18,11 @@ from docx.shared import Mm, Pt, RGBColor
 from tex2sto.dialect.syntax import find_command_calls, find_environment
 from tex2sto.model import NumberingIndex, ObjectKind, SourceProject
 from tex2sto.profiles.ssau.lab_title import docx_title_page, report_name
-from tex2sto.profiles.ssau.practice import docx_department_front_matter, docx_front_matter
+from tex2sto.profiles.ssau.practice import (
+    docx_front_matter,
+    docx_nir_master_front_matter,
+    nir_master_abstract_counts,
+)
 from tex2sto.renderers.docx_fields import (
     add_bookmark,
     add_field,
@@ -158,23 +162,29 @@ def _abstract_and_toc(
     index: NumberingIndex,
     toc_entries: list[tuple[int, str, str]],
     *,
-    start_on_new_page: bool,
+    nir_master_template: bool,
 ) -> list:
     counts = {kind: sum(item.kind is kind for item in index.objects) for kind in ObjectKind}
     appendices = len(find_command_calls(project.body, "appendix", 2))
     elements = []
     heading = _front_paragraph(document, "РЕФЕРАТ", style="Tex2Sto Structural Heading")
-    if start_on_new_page:
+    if nir_master_template:
         heading.paragraph_format.page_break_before = True
     elements.append(heading._p)
     stats = _front_paragraph(document)
-    stats.add_run("Работа: ")
-    add_field(stats, "NUMPAGES", "0")
-    stats.add_run(
-        f" с., {counts[ObjectKind.FIGURE]} рис., {counts[ObjectKind.TABLE]} табл., "
-        f"{len(project.bibliography)} источник(ов), "
-        f"{appendices} прил."
-    )
+    figures = counts[ObjectKind.FIGURE]
+    tables = counts[ObjectKind.TABLE]
+    sources = len(project.bibliography)
+    if nir_master_template:
+        stats.add_run("Отчет ")
+        add_field(stats, "NUMPAGES", "…")
+        stats.add_run(f" с., {nir_master_abstract_counts(figures, tables, sources, appendices)}")
+    else:
+        stats.add_run("Работа: ")
+        add_field(stats, "NUMPAGES", "0")
+        stats.add_run(
+            f" с., {figures} рис., {tables} табл., {sources} источник(ов), {appendices} прил."
+        )
     elements.append(stats._p)
     keywords = _front_paragraph(
         document,
@@ -553,14 +563,14 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
         if document.paragraphs:
             document.paragraphs[0].paragraph_format.page_break_before = True
     anchor = document.element.body[0]
-    department_template = (
+    nir_master_template = (
         project.metadata.practice_title is not None
-        and project.settings.practice_template == "6132-6133"
+        and project.settings.practice_template == "nir-master"
     )
     if lab_title is not None:
         elements = docx_title_page(document, lab_title)
-    elif department_template:
-        elements = docx_department_front_matter(document, project.metadata)
+    elif nir_master_template:
+        elements = docx_nir_master_front_matter(document, project.metadata)
     elif project.metadata.practice_title is not None:
         elements = docx_front_matter(
             document, project.metadata, project.settings.table_line_spacing
@@ -574,12 +584,14 @@ def _postprocess(path: Path, project: SourceProject, index: NumberingIndex) -> N
                 project,
                 index,
                 _toc_entries(document),
-                start_on_new_page=department_template,
+                nir_master_template=nir_master_template,
             )
         )
     for element in elements:
         _move_before(element, anchor)
-    set_update_fields(document)
+    # Word can evaluate NUMPAGES against the reference document's page cache
+    # before laying out a newly generated research report.
+    set_update_fields(document, on_open=not nir_master_template)
     document.core_properties.title = report_name(lab_title) if lab_title else project.metadata.title
     document.core_properties.author = lab_title.author if lab_title else project.metadata.author
     document.save(path)
